@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// Enerlyze — Firestore security rules.
+//
+// NOTE: Enerlyze authenticates against its own `users_enerlyze` collection
+// (custom client-side auth), not Firebase Authentication. Because no Firebase
+// Auth token reaches Firestore, rules cannot enforce per-user ownership here.
+//
+// The rules below restrict access to the `*_enerlyze` collections only.
+// For a production deployment, migrate login to Firebase Auth and tighten
+// these rules to check `request.auth` — see SETUP.md.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Allow access only to Enerlyze's own collections.
+    match /{collection}/{docId} {
+      allow read, write: if collection.matches('.*_enerlyze');
+    }
+  }
+}
