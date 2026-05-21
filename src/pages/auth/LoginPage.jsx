@@ -43,10 +43,7 @@ const LoginPage = () => {
     <div className="min-h-screen bg-black relative overflow-hidden">
       {/* Ambient background */}
       <div className="absolute inset-0 pointer-events-none">
-        <div
-          className="absolute top-[15%] left-1/2 -translate-x-1/2 w-150 h-100 rounded-full blur-3xl"
-          style={{ backgroundColor: 'rgba(160, 50, 20, 0.35)' }}
-        />
+        <div className="absolute top-[15%] left-1/2 -translate-x-1/2 w-150 h-100 bg-white/4 rounded-full blur-3xl" />
         <div className="absolute bottom-[10%] left-1/2 -translate-x-1/2 w-100 h-80 bg-emerald-500/5 rounded-full blur-3xl" />
         <div
           className="absolute inset-0 opacity-[0.025]"
