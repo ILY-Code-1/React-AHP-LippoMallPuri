@@ -1,0 +1,287 @@
+' == Activity: Login ==
+@startuml
+title Activity Diagram - Login Enerlyze
+|Pengguna|
+start
+:Buka halaman Login Enerlyze;
+:Masukkan email dan password;
+:Tekan tombol Login;
+|Sistem|
+:Verifikasi email & password
+terhadap data pengguna;
+if (Kredensial valid?) then (ya)
+  :Buat sesi login &
+  segarkan notifikasi;
+  if (Role pengguna?) then (Admin)
+    :Arahkan ke Dashboard Admin;
+  else (Staff)
+    :Arahkan ke Dashboard Staff;
+  endif
+  stop
+else (tidak)
+  :Tampilkan pesan
+  "Email atau password salah";
+  stop
+endif
+@enduml
+
+' == Activity: Ubah Password ==
+@startuml
+title Activity Diagram - Ubah Password
+|Pengguna|
+start
+:Buka dialog Ubah Password;
+:Isi password lama,
+password baru & konfirmasi;
+:Tekan Simpan;
+|Sistem|
+if (Konfirmasi cocok & valid?) then (ya)
+  :Verifikasi password lama;
+  if (Password lama benar?) then (ya)
+    :Simpan password baru;
+    :Tampilkan notifikasi berhasil;
+    stop
+  else (tidak)
+    :Tampilkan pesan
+    "Password saat ini salah";
+    stop
+  endif
+else (tidak)
+  :Tampilkan pesan kesalahan validasi;
+  stop
+endif
+@enduml
+
+' == Activity: Lihat Dashboard Konsumsi Energi & Skor AHP ==
+@startuml
+title Activity Diagram - Lihat Dashboard
+|Pengguna|
+start
+:Buka halaman Dashboard;
+:Pilih rentang periode
+(3-20 bulan terakhir);
+|Sistem|
+:Ambil data area, data energi
+& hasil AHP pada periode;
+:Hitung KPI ringkasan
+(total area, energi, biaya, skor);
+:Tampilkan kartu KPI &
+grafik skor AHP per area;
+|Pengguna|
+:Klik legenda area untuk
+menyorot tren area tertentu;
+stop
+@enduml
+
+' == Activity: Kelola Data Energi Area ==
+@startuml
+title Activity Diagram - Kelola Data Energi Area
+|Staff|
+start
+:Buka halaman Data;
+:Pilih area & bulan;
+if (Pilih aksi?) then (Tambah / Edit)
+  :Isi form data energi
+  (kWh, biaya, durasi, maintenance);
+  :Tekan Simpan;
+  |Sistem|
+  if (Data area & bulan sudah ada?) then (ya, saat Tambah)
+    :Tampilkan pesan data sudah ada;
+    stop
+  else (tidak)
+    :Simpan catatan data energi;
+    :Tampilkan notifikasi berhasil;
+    stop
+  endif
+else (Hapus)
+  |Sistem|
+  :Konfirmasi & hapus catatan data;
+  :Tampilkan notifikasi berhasil;
+  stop
+endif
+@enduml
+
+' == Activity: Jalankan Analisis AHP Bulanan ==
+@startuml
+title Activity Diagram - Jalankan Analisis AHP Bulanan
+|Admin|
+start
+:Buka halaman Data Admin;
+:Pilih bulan analisis;
+|Sistem|
+:Periksa kelengkapan data
+seluruh area pada bulan tsb;
+if (Semua area sudah mengisi data?) then (ya)
+  |Admin|
+  :Tekan Run / Re-run AHP &
+  konfirmasi;
+  |Sistem|
+  :Hitung bobot kriteria, konsistensi
+  & ranking prioritas area;
+  :Simpan hasil AHP bulan tsb;
+  :Tampilkan ranking & notifikasi berhasil;
+  stop
+else (tidak)
+  :Nonaktifkan tombol Run AHP &
+  tampilkan info data belum lengkap;
+  stop
+endif
+@enduml
+
+' == Activity: Lihat Laporan Detail AHP ==
+@startuml
+title Activity Diagram - Lihat Laporan Detail AHP
+|Admin|
+start
+:Klik "View Detail" pada bulan terpilih;
+|Sistem|
+:Buka halaman laporan di tab baru;
+:Ambil hasil AHP, data area & data energi;
+if (Hasil AHP tersedia?) then (ya)
+  :Tampilkan laporan lengkap
+  (ranking, pairwise matrix, rekomendasi);
+else (tidak)
+  :Tampilkan data input mentah
+  tanpa ranking;
+endif
+|Admin|
+:Tinjau isi laporan;
+stop
+@enduml
+
+' == Activity: Kelola Master User ==
+@startuml
+title Activity Diagram - Kelola Master User
+|Admin|
+start
+:Buka menu Master User;
+if (Pilih aksi?) then (Tambah / Edit)
+  :Isi data user (nama, email, role, password);
+  :Tekan Simpan;
+  |Sistem|
+  :Validasi & simpan data user;
+  :Tampilkan notifikasi berhasil;
+  stop
+else if (Reset Password) then
+  |Sistem|
+  :Reset password user ke nilai default;
+  :Tampilkan password default;
+  stop
+else (Hapus)
+  |Sistem|
+  if (User masih memegang area?) then (ya)
+    :Tolak penghapusan & tampilkan alasan;
+    stop
+  else (tidak)
+    :Hapus user & tampilkan notifikasi;
+    stop
+  endif
+endif
+@enduml
+
+' == Activity: Kelola Master Area ==
+@startuml
+title Activity Diagram - Kelola Master Area
+|Admin|
+start
+:Buka menu Master Area;
+if (Pilih aksi?) then (Tambah / Edit)
+  :Isi nama, deskripsi & pilih
+  user penanggung jawab;
+  :Tekan Simpan;
+  |Sistem|
+  :Validasi & simpan data area;
+  :Tampilkan notifikasi berhasil;
+  stop
+else (Hapus)
+  |Sistem|
+  if (Area masih punya data energi?) then (ya)
+    :Tolak penghapusan & tampilkan alasan;
+    stop
+  else (tidak)
+    :Hapus area & tampilkan notifikasi;
+    stop
+  endif
+endif
+@enduml
+
+' == Activity: Kelola Kriteria AHP ==
+@startuml
+title Activity Diagram - Kelola Kriteria AHP (Atur Rank)
+|Admin|
+start
+:Buka menu Master AHP - Kriteria;
+:Tinjau empat kriteria penilaian;
+:Pilih kriteria & klik Edit;
+:Tentukan rank prioritas baru (1-4);
+:Tekan Simpan;
+|Sistem|
+:Tukar rank dengan kriteria
+yang sebelumnya memakai rank tsb;
+:Simpan perubahan rank;
+:Tampilkan notifikasi berhasil;
+stop
+@enduml
+
+' == Activity: Kelola Notifikasi ==
+@startuml
+title Activity Diagram - Kelola Notifikasi
+|Pengguna|
+start
+:Klik ikon lonceng notifikasi;
+|Sistem|
+:Tampilkan daftar notifikasi pengguna;
+|Pengguna|
+if (Pilih aksi?) then (Buka notifikasi)
+  :Klik salah satu notifikasi;
+  |Sistem|
+  :Arahkan ke halaman terkait;
+  stop
+else if (Hapus satu) then
+  |Sistem|
+  :Hapus notifikasi terpilih;
+  stop
+else (Tandai semua terbaca)
+  |Sistem|
+  :Bersihkan seluruh notifikasi pengguna;
+  stop
+endif
+@enduml
+
+' == Activity: Unduh Laporan PDF ==
+@startuml
+title Activity Diagram - Unduh Laporan PDF
+|Admin|
+start
+:Buka halaman Laporan Detail AHP;
+:Klik tombol "Unduh PDF";
+|Sistem|
+:Render isi laporan menjadi gambar;
+:Susun gambar ke dokumen PDF A4;
+if (Pembuatan PDF berhasil?) then (ya)
+  :Simpan berkas PDF ke perangkat;
+  stop
+else (tidak)
+  :Tampilkan pesan "Gagal membuat PDF";
+  stop
+endif
+@enduml
+
+' == Activity: Hapus Hasil AHP ==
+@startuml
+title Activity Diagram - Hapus Hasil AHP
+|Admin|
+start
+:Buka halaman Laporan Detail AHP;
+:Klik tombol "Hapus Laporan";
+:Konfirmasi penghapusan;
+|Sistem|
+:Hapus hasil AHP bulan tersebut;
+note right
+  Data input energi
+  tetap tersimpan
+end note
+:Tampilkan notifikasi berhasil &
+laporan kembali ke tampilan data input;
+stop
+@enduml

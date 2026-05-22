@@ -1,0 +1,319 @@
+' == Sequence: Login ==
+@startuml
+title Sequence Diagram - Login Enerlyze
+actor "Pengguna" as U
+participant "Halaman Login" as UI
+participant "authService" as SVC
+database "Firestore" as DB
+
+U -> UI : Masukkan email & password
+activate UI
+UI -> SVC : login(email, password)
+activate SVC
+SVC -> DB : Ambil user berdasarkan email
+activate DB
+DB --> SVC : Data user
+deactivate DB
+alt Kredensial valid
+  SVC --> UI : Data user terverifikasi
+  UI -> UI : Buat sesi & arahkan ke dashboard
+  UI --> U : Tampilkan dashboard sesuai role
+else Kredensial salah
+  SVC --> UI : Error "Email atau password salah"
+  UI --> U : Tampilkan pesan kesalahan
+end
+deactivate SVC
+deactivate UI
+@enduml
+
+' == Sequence: Ubah Password ==
+@startuml
+title Sequence Diagram - Ubah Password
+actor "Pengguna" as U
+participant "Dialog Ubah Password" as UI
+participant "authService" as SVC
+database "Firestore" as DB
+
+U -> UI : Isi password lama, baru & konfirmasi
+activate UI
+UI -> SVC : changePassword(userId, lama, baru)
+activate SVC
+SVC -> DB : Ambil data user
+activate DB
+DB --> SVC : Data user
+deactivate DB
+alt Password lama benar
+  SVC -> DB : Perbarui hash password
+  SVC --> UI : Berhasil
+  UI --> U : Notifikasi "Password diperbarui"
+else Password lama salah
+  SVC --> UI : Error "Password saat ini salah"
+  UI --> U : Tampilkan pesan kesalahan
+end
+deactivate SVC
+deactivate UI
+@enduml
+
+' == Sequence: Lihat Dashboard Konsumsi Energi & Skor AHP ==
+@startuml
+title Sequence Diagram - Lihat Dashboard
+actor "Pengguna" as U
+participant "DashboardView" as UI
+participant "Layanan Data" as SVC
+database "Firestore" as DB
+
+U -> UI : Buka dashboard / pilih rentang periode
+activate UI
+UI -> SVC : Ambil area, data energi & hasil AHP
+activate SVC
+SVC -> DB : Query koleksi terkait periode
+activate DB
+DB --> SVC : Kumpulan data
+deactivate DB
+SVC --> UI : Data area, energi & hasil AHP
+deactivate SVC
+UI -> UI : Hitung KPI & susun data grafik
+UI --> U : Tampilkan kartu KPI & grafik skor AHP
+deactivate UI
+@enduml
+
+' == Sequence: Kelola Data Energi Area ==
+@startuml
+title Sequence Diagram - Kelola Data Energi Area
+actor "Staff" as U
+participant "Halaman Data" as UI
+participant "dataService" as SVC
+database "Firestore" as DB
+
+U -> UI : Isi form data energi & Simpan
+activate UI
+UI -> SVC : createData / updateData(payload)
+activate SVC
+alt Tambah data baru
+  SVC -> DB : Cek duplikasi (area + bulan)
+  activate DB
+  DB --> SVC : Status duplikasi
+  deactivate DB
+end
+alt Data belum ada / mode edit
+  SVC -> DB : Simpan catatan data energi
+  SVC --> UI : Berhasil
+  UI --> U : Notifikasi "Data tersimpan"
+else Data sudah ada
+  SVC --> UI : Error "Data sudah ada"
+  UI --> U : Tampilkan pesan kesalahan
+end
+deactivate SVC
+deactivate UI
+@enduml
+
+' == Sequence: Jalankan Analisis AHP Bulanan ==
+@startuml
+title Sequence Diagram - Jalankan Analisis AHP Bulanan
+actor "Admin" as U
+participant "Halaman Data Admin" as UI
+participant "ahpService" as SVC
+database "Firestore" as DB
+
+U -> UI : Pilih bulan & tekan Run AHP
+activate UI
+UI -> SVC : runAndSaveAHP(month, admin)
+activate SVC
+SVC -> DB : Ambil area, data energi & kriteria
+activate DB
+DB --> SVC : Data masukan AHP
+deactivate DB
+alt Data seluruh area lengkap
+  SVC -> SVC : Hitung bobot, konsistensi & ranking
+  SVC -> DB : Simpan hasil AHP (id = bulan)
+  SVC --> UI : Hasil AHP
+  UI --> U : Tampilkan ranking & notifikasi berhasil
+else Data belum lengkap
+  SVC --> UI : Error "Data belum lengkap"
+  UI --> U : Tampilkan pesan kesalahan
+end
+deactivate SVC
+deactivate UI
+@enduml
+
+' == Sequence: Lihat Laporan Detail AHP ==
+@startuml
+title Sequence Diagram - Lihat Laporan Detail AHP
+actor "Admin" as U
+participant "DetailReportPage" as UI
+participant "ahpService" as SVC
+database "Firestore" as DB
+
+U -> UI : Buka laporan detail bulan terpilih
+activate UI
+UI -> SVC : getAhpResult(month) + data area & energi
+activate SVC
+SVC -> DB : Query hasil AHP, area & data energi
+activate DB
+DB --> SVC : Hasil AHP & data
+deactivate DB
+SVC --> UI : Data laporan
+deactivate SVC
+alt Hasil AHP tersedia
+  UI --> U : Tampilkan laporan lengkap + rekomendasi
+else Hasil AHP belum ada
+  UI --> U : Tampilkan data input mentah
+end
+deactivate UI
+@enduml
+
+' == Sequence: Kelola Master User ==
+@startuml
+title Sequence Diagram - Kelola Master User
+actor "Admin" as U
+participant "Halaman Master User" as UI
+participant "userService" as SVC
+database "Firestore" as DB
+
+U -> UI : Tambah / Edit / Hapus / Reset user
+activate UI
+UI -> SVC : createUser / updateUser / deleteUser
+activate SVC
+SVC -> DB : Validasi & jalankan operasi data user
+activate DB
+DB --> SVC : Status operasi
+deactivate DB
+alt Operasi berhasil
+  SVC --> UI : Berhasil
+  UI --> U : Notifikasi & muat ulang daftar user
+else Operasi ditolak
+  SVC --> UI : Error (mis. user masih memegang area)
+  UI --> U : Tampilkan pesan kesalahan
+end
+deactivate SVC
+deactivate UI
+@enduml
+
+' == Sequence: Kelola Master Area ==
+@startuml
+title Sequence Diagram - Kelola Master Area
+actor "Admin" as U
+participant "Halaman Master Area" as UI
+participant "areaService" as SVC
+database "Firestore" as DB
+
+U -> UI : Tambah / Edit / Hapus area
+activate UI
+UI -> SVC : createArea / updateArea / deleteArea
+activate SVC
+SVC -> DB : Validasi & jalankan operasi data area
+activate DB
+DB --> SVC : Status operasi
+deactivate DB
+alt Operasi berhasil
+  SVC --> UI : Berhasil
+  UI --> U : Notifikasi & muat ulang daftar area
+else Operasi ditolak
+  SVC --> UI : Error (mis. area masih punya data energi)
+  UI --> U : Tampilkan pesan kesalahan
+end
+deactivate SVC
+deactivate UI
+@enduml
+
+' == Sequence: Kelola Kriteria AHP ==
+@startuml
+title Sequence Diagram - Kelola Kriteria AHP (Atur Rank)
+actor "Admin" as U
+participant "Halaman Master AHP" as UI
+participant "criteriaService" as SVC
+database "Firestore" as DB
+
+U -> UI : Pilih kriteria & tentukan rank baru
+activate UI
+UI -> SVC : updateCriterionRank(key, rankBaru)
+activate SVC
+SVC -> DB : Ambil daftar kriteria saat ini
+activate DB
+DB --> SVC : Empat kriteria
+deactivate DB
+SVC -> SVC : Tukar rank dengan kriteria pemilik rank
+SVC -> DB : Simpan perubahan rank
+SVC --> UI : Berhasil
+UI --> U : Notifikasi & muat ulang tabel kriteria
+deactivate SVC
+deactivate UI
+@enduml
+
+' == Sequence: Kelola Notifikasi ==
+@startuml
+title Sequence Diagram - Kelola Notifikasi
+actor "Pengguna" as U
+participant "NotificationBell" as UI
+participant "notificationService" as SVC
+database "Firestore" as DB
+
+U -> UI : Klik ikon lonceng
+activate UI
+UI -> SVC : getNotifications(userId)
+activate SVC
+SVC -> DB : Query notifikasi pengguna
+activate DB
+DB --> SVC : Daftar notifikasi
+deactivate DB
+SVC --> UI : Daftar notifikasi
+deactivate SVC
+UI --> U : Tampilkan daftar notifikasi
+U -> UI : Hapus satu / tandai semua terbaca
+activate UI
+UI -> SVC : deleteNotification / clearNotifications
+activate SVC
+SVC -> DB : Hapus notifikasi terkait
+SVC --> UI : Berhasil
+deactivate SVC
+UI --> U : Perbarui tampilan notifikasi
+deactivate UI
+@enduml
+
+' == Sequence: Unduh Laporan PDF ==
+@startuml
+title Sequence Diagram - Unduh Laporan PDF
+actor "Admin" as U
+participant "DetailReportPage" as UI
+participant "Pustaka html2canvas & jsPDF" as LIB
+
+U -> UI : Klik tombol "Unduh PDF"
+activate UI
+UI -> LIB : Render konten laporan ke kanvas
+activate LIB
+LIB --> UI : Gambar laporan
+deactivate LIB
+UI -> LIB : Susun gambar ke dokumen PDF A4
+activate LIB
+alt Pembuatan PDF berhasil
+  LIB --> UI : Berkas PDF
+  UI --> U : Unduh berkas Laporan-AHP.pdf
+else Gagal
+  LIB --> UI : Error
+  UI --> U : Notifikasi "Gagal membuat PDF"
+end
+deactivate LIB
+deactivate UI
+@enduml
+
+' == Sequence: Hapus Hasil AHP ==
+@startuml
+title Sequence Diagram - Hapus Hasil AHP
+actor "Admin" as U
+participant "DetailReportPage" as UI
+participant "ahpService" as SVC
+database "Firestore" as DB
+
+U -> UI : Klik "Hapus Laporan" & konfirmasi
+activate UI
+UI -> SVC : deleteAhpResult(month)
+activate SVC
+SVC -> DB : Hapus dokumen hasil AHP bulan tsb
+activate DB
+DB --> SVC : Status berhasil
+deactivate DB
+SVC --> UI : Berhasil
+deactivate SVC
+UI --> U : Notifikasi & laporan beralih ke data input
+deactivate UI
+@enduml

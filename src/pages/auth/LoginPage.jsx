@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, ArrowRight } from 'lucide-react'
 import LippoLogo from '../../components/layout/LippoLogo'
 import useAuthStore, { hasSessionCookie } from '../../stores/authStore'
+import useNotificationStore from '../../stores/notificationStore'
 import { login as loginService } from '../../services/authService'
 import { generateNotifications } from '../../services/notificationService'
 
@@ -14,6 +15,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false)
   const login = useAuthStore((s) => s.login)
   const { isAuthenticated, user } = useAuthStore()
+  const triggerNotifRefresh = useNotificationStore((s) => s.triggerRefresh)
   const navigate = useNavigate()
 
   // Already-logged-in users (valid cookie) skip the login screen.
@@ -30,8 +32,12 @@ const LoginPage = () => {
     try {
       const account = await loginService({ email, password })
       login(account)
-      // Notifications are regenerated on every login.
-      generateNotifications(account).catch(() => {})
+      // Notifications are regenerated on every login. Generation runs in the
+      // background; once done, signal the bell to re-fetch so notifications
+      // appear immediately without a page reload.
+      generateNotifications(account)
+        .then(() => triggerNotifRefresh())
+        .catch(() => {})
       navigate(account.role === 'admin' ? '/admin/dashboard' : '/dashboard', { replace: true })
     } catch (err) {
       setError(err.message || 'Gagal masuk. Coba lagi.')

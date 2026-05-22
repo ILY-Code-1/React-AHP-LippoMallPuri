@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>White Box Testing · Enerlyze Lippo Mall Puri</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f4f4f5; color: #27272a;
+    margin: 0; padding: 40px 20px; line-height: 1.6; }
+  .page { max-width: 1080px; margin: 0 auto; background: #fff; border: 1px solid #e4e4e7;
+    border-radius: 14px; padding: 44px 52px; }
+  h1 { font-size: 24px; margin: 0 0 4px; color: #18181b; }
+  .sub { color: #71717a; font-size: 14px; margin-bottom: 28px; }
+  h2 { font-size: 17px; color: #fff; background: #18181b; padding: 9px 14px; border-radius: 7px;
+    margin: 40px 0 6px; }
+  h3 { font-size: 14px; color: #18181b; margin: 22px 0 6px;
+    border-left: 3px solid #18181b; padding-left: 9px; }
+  p { font-size: 13.5px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; margin-top: 10px; }
+  th, td { border: 1px solid #e4e4e7; padding: 7px 10px; text-align: left; vertical-align: top; }
+  th { background: #18181b; color: #fff; font-size: 10.5px; text-transform: uppercase; }
+  tr:nth-child(even) td { background: #fafafa; }
+  code { background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 3px; padding: 0 4px; font-size: 12px; }
+  pre.plantuml { background: #18181b; color: #e4e4e7; padding: 16px 18px; border-radius: 9px;
+    font-size: 11.5px; overflow-x: auto; line-height: 1.45; }
+  .trace { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 7px;
+    padding: 9px 14px; font-size: 12.5px; color: #1e40af; }
+  .cc { background: #18181b; color: #fff; display: inline-block; padding: 2px 10px;
+    border-radius: 99px; font-size: 12px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>White Box Testing</h1>
+  <div class="sub">
+    Aplikasi <strong>Enerlyze</strong> — Smart Energy Analysis &amp; AHP Decision Engine · Lippo Mall Puri<br>
+    Pengujian struktural berbasis flowchart, flowgraph, cyclomatic complexity, dan basis path.
+  </div>
+  <p>
+    Pengujian white box difokuskan pada modul-modul inti yang memuat percabangan logika non-trivial —
+    yaitu fungsi autentikasi, penyimpanan data dengan guard duplikasi, mesin AHP, dan pengaturan rank
+    kriteria. Rumus yang dipakai: <strong>V(G) = E − N + 2P</strong> (E = jumlah edge, N = jumlah node,
+    P = jumlah komponen terhubung) yang ekuivalen dengan <strong>V(G) = jumlah predikat + 1</strong>.
+  </p>
+
+  <!-- ============== FUNGSI 1 ============== -->
+  <h2>Fungsi 1 — login()</h2>
+  <div class="trace">
+    <strong>Code traceability:</strong> berkas <code>src/services/authService.js</code> baris 16–23,
+    memanggil <code>verifyPassword()</code> pada <code>src/lib/crypto.js</code> baris 52–61.
+  </div>
+
+  <h3>1.1 Flowchart</h3>
+  <pre class="plantuml">
+@startuml
+title Flowchart - login()
+start
+:Terima email & password;
+:Ambil data user berdasarkan email;
+if (User ditemukan?) then (tidak)
+  :Lempar error
+  "Email atau password salah";
+  stop
+else (ya)
+  if (verifyPassword cocok?) then (tidak)
+    :Lempar error
+    "Email atau password salah";
+    stop
+  else (ya)
+    :Hapus field password (sanitize);
+    :Kembalikan data user;
+    stop
+  endif
+endif
+@enduml
+  </pre>
+
+  <h3>1.2 Flowgraph</h3>
+  <pre class="plantuml">
+@startuml
+title Flowgraph - login()
+left to right direction
+circle "1" as N1
+circle "2" as N2
+circle "3" as N3
+circle "4" as N4
+circle "5" as N5
+circle "6" as N6
+circle "7" as N7
+N1 --> N2
+N2 --> N3 : user tidak ada
+N2 --> N4 : user ada
+N3 --> N7
+N4 --> N5 : password salah
+N4 --> N6 : password benar
+N5 --> N7
+N6 --> N7
+@enduml
+  </pre>
+  <p style="font-size:12.5px;color:#52525b">
+    Node: 1 = ambil user · 2 = cek user ditemukan · 3 = throw (user tdk ada) ·
+    4 = cek verifyPassword · 5 = throw (password salah) · 6 = sanitize &amp; return · 7 = selesai.
+  </p>
+
+  <h3>1.3 Cyclomatic Complexity</h3>
+  <table>
+    <thead><tr><th>Komponen</th><th>Nilai</th><th>Perhitungan</th></tr></thead>
+    <tbody>
+      <tr><td>Edge (E)</td><td>8</td><td>Jumlah panah pada flowgraph</td></tr>
+      <tr><td>Node (N)</td><td>7</td><td>Jumlah simpul pada flowgraph</td></tr>
+      <tr><td>Predikat</td><td>2</td><td>Node 2 dan Node 4</td></tr>
+      <tr><td>V(G) = E − N + 2P</td><td>8 − 7 + 2 = <span class="cc">3</span></td><td>P = 1</td></tr>
+      <tr><td>V(G) = Predikat + 1</td><td>2 + 1 = <span class="cc">3</span></td><td>Hasil konsisten</td></tr>
+    </tbody>
+  </table>
+
+  <h3>1.4 Basis Path &amp; Test Case</h3>
+  <table>
+    <thead><tr><th>Path</th><th>Jalur Node</th><th>Skenario</th><th>Data Uji</th><th>Hasil Diharapkan</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>1-2-3-7</td><td>Email tidak terdaftar</td><td>email: tidakada@x.com</td><td>Error "Email atau password salah"</td></tr>
+      <tr><td>P2</td><td>1-2-4-5-7</td><td>Password salah</td><td>email benar, password salah</td><td>Error "Email atau password salah"</td></tr>
+      <tr><td>P3</td><td>1-2-4-6-7</td><td>Login berhasil</td><td>email &amp; password benar</td><td>Mengembalikan data user tanpa password</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============== FUNGSI 2 ============== -->
+  <h2>Fungsi 2 — createData()</h2>
+  <div class="trace">
+    <strong>Code traceability:</strong> berkas <code>src/services/dataService.js</code> baris 35–56
+    (guard satu catatan per pasangan area &amp; bulan).
+  </div>
+
+  <h3>2.1 Flowchart</h3>
+  <pre class="plantuml">
+@startuml
+title Flowchart - createData()
+start
+:Terima payload data energi;
+:Query catatan dengan area_id & month sama;
+if (Catatan duplikat ditemukan?) then (ya)
+  :Lempar error
+  "Data untuk area & bulan ini sudah ada";
+  stop
+else (tidak)
+  :Simpan dokumen data energi baru;
+  :Kembalikan ID dokumen;
+  stop
+endif
+@enduml
+  </pre>
+
+  <h3>2.2 Flowgraph</h3>
+  <pre class="plantuml">
+@startuml
+title Flowgraph - createData()
+left to right direction
+circle "1" as N1
+circle "2" as N2
+circle "3" as N3
+circle "4" as N4
+circle "5" as N5
+circle "6" as N6
+N1 --> N2
+N2 --> N3 : duplikat
+N2 --> N4 : tidak duplikat
+N3 --> N6
+N4 --> N5
+N5 --> N6
+@enduml
+  </pre>
+  <p style="font-size:12.5px;color:#52525b">
+    Node: 1 = query duplikasi · 2 = cek duplikat · 3 = throw (data sudah ada) ·
+    4 = addDoc simpan · 5 = return ID · 6 = selesai.
+  </p>
+
+  <h3>2.3 Cyclomatic Complexity</h3>
+  <table>
+    <thead><tr><th>Komponen</th><th>Nilai</th><th>Perhitungan</th></tr></thead>
+    <tbody>
+      <tr><td>Edge (E)</td><td>6</td><td>Jumlah panah pada flowgraph</td></tr>
+      <tr><td>Node (N)</td><td>6</td><td>Jumlah simpul pada flowgraph</td></tr>
+      <tr><td>Predikat</td><td>1</td><td>Node 2</td></tr>
+      <tr><td>V(G) = E − N + 2P</td><td>6 − 6 + 2 = <span class="cc">2</span></td><td>P = 1</td></tr>
+      <tr><td>V(G) = Predikat + 1</td><td>1 + 1 = <span class="cc">2</span></td><td>Hasil konsisten</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.4 Basis Path &amp; Test Case</h3>
+  <table>
+    <thead><tr><th>Path</th><th>Jalur Node</th><th>Skenario</th><th>Data Uji</th><th>Hasil Diharapkan</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>1-2-3-6</td><td>Data area &amp; bulan sudah ada</td><td>Lantai 1 · 2026-04 (existing)</td><td>Error "Data sudah ada"</td></tr>
+      <tr><td>P2</td><td>1-2-4-5-6</td><td>Data baru valid</td><td>Lantai 2 · 2026-04</td><td>Dokumen tersimpan, ID dikembalikan</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============== FUNGSI 3 ============== -->
+  <h2>Fungsi 3 — buildCriteriaMatrix()</h2>
+  <div class="trace">
+    <strong>Code traceability:</strong> berkas <code>src/lib/ahp.js</code> baris 27–43
+    (pembentukan matriks pairwise Saaty dari rank kriteria).
+  </div>
+
+  <h3>3.1 Flowchart</h3>
+  <pre class="plantuml">
+@startuml
+title Flowchart - buildCriteriaMatrix()
+start
+:Inisialisasi matrix n x n bernilai 1; i = 0;
+while (i < n ?) is (ya)
+  :j = 0;
+  while (j < n ?) is (ya)
+    if (i sama dengan j ?) then (ya)
+      :matrix[i][j] = 1;
+    else (tidak)
+      :Hitung diff rank & nilai Saaty;
+      if (diff >= 0 ?) then (ya)
+        :matrix[i][j] = saaty;
+      else (tidak)
+        :matrix[i][j] = 1 / saaty;
+      endif
+    endif
+    :j = j + 1;
+  endwhile (tidak)
+  :i = i + 1;
+endwhile (tidak)
+:Kembalikan matrix;
+stop
+@enduml
+  </pre>
+
+  <h3>3.2 Flowgraph</h3>
+  <pre class="plantuml">
+@startuml
+title Flowgraph - buildCriteriaMatrix()
+circle "1" as N1
+circle "2" as N2
+circle "3" as N3
+circle "4" as N4
+circle "5" as N5
+circle "6" as N6
+circle "7" as N7
+circle "8" as N8
+circle "9" as N9
+circle "10" as N10
+circle "11" as N11
+circle "12" as N12
+N1 --> N2
+N2 --> N3 : i<n
+N2 --> N12 : i>=n
+N3 --> N4
+N4 --> N5 : j<n
+N4 --> N11 : j>=n
+N5 --> N6 : i==j
+N5 --> N7 : i!=j
+N6 --> N10
+N7 --> N8 : diff>=0
+N7 --> N9 : diff<0
+N8 --> N10
+N9 --> N10
+N10 --> N4
+N11 --> N2
+@enduml
+  </pre>
+  <p style="font-size:12.5px;color:#52525b">
+    Node: 1 = init matrix · 2 = uji loop luar · 3 = j=0 · 4 = uji loop dalam ·
+    5 = uji i==j · 6 = set diagonal · 7 = hitung diff &amp; saaty · 8 = set saaty ·
+    9 = set 1/saaty · 10 = j++ · 11 = i++ · 12 = return.
+  </p>
+
+  <h3>3.3 Cyclomatic Complexity</h3>
+  <table>
+    <thead><tr><th>Komponen</th><th>Nilai</th><th>Perhitungan</th></tr></thead>
+    <tbody>
+      <tr><td>Edge (E)</td><td>15</td><td>Jumlah panah pada flowgraph</td></tr>
+      <tr><td>Node (N)</td><td>12</td><td>Jumlah simpul pada flowgraph</td></tr>
+      <tr><td>Predikat</td><td>4</td><td>Node 2, 4, 5, 7</td></tr>
+      <tr><td>V(G) = E − N + 2P</td><td>15 − 12 + 2 = <span class="cc">5</span></td><td>P = 1</td></tr>
+      <tr><td>V(G) = Predikat + 1</td><td>4 + 1 = <span class="cc">5</span></td><td>Hasil konsisten</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.4 Basis Path &amp; Test Case</h3>
+  <table>
+    <thead><tr><th>Path</th><th>Jalur Node</th><th>Skenario</th><th>Data Uji</th><th>Hasil Diharapkan</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>1-2-12</td><td>Tidak ada kriteria (n = 0)</td><td>criteria = []</td><td>Matrix kosong dikembalikan</td></tr>
+      <tr><td>P2</td><td>1-2-3-4-11-2-12</td><td>Loop dalam tidak dieksekusi (n = 1)</td><td>1 kriteria</td><td>Matrix 1×1 = [[1]]</td></tr>
+      <tr><td>P3</td><td>1-2-3-4-5-6-10-...</td><td>Sel diagonal (i = j)</td><td>4 kriteria, sel [0][0]</td><td>matrix[i][j] = 1</td></tr>
+      <tr><td>P4</td><td>1-2-3-4-5-7-8-10-...</td><td>Kriteria i lebih unggul (diff ≥ 0)</td><td>rank i=1, j=3</td><td>matrix[i][j] = nilai Saaty (mis. 5)</td></tr>
+      <tr><td>P5</td><td>1-2-3-4-5-7-9-10-...</td><td>Kriteria i kalah (diff &lt; 0)</td><td>rank i=3, j=1</td><td>matrix[i][j] = 1/saaty (mis. 1/5)</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ============== FUNGSI 4 ============== -->
+  <h2>Fungsi 4 — updateCriterionRank()</h2>
+  <div class="trace">
+    <strong>Code traceability:</strong> berkas <code>src/services/criteriaService.js</code> baris 50–63
+    (penukaran rank agar rank 1–4 tetap unik).
+  </div>
+
+  <h3>4.1 Flowchart</h3>
+  <pre class="plantuml">
+@startuml
+title Flowchart - updateCriterionRank()
+start
+:Ambil daftar kriteria & cari target;
+if (Kriteria target ditemukan?) then (tidak)
+  :Lempar error "Kriteria tidak ditemukan";
+  stop
+else (ya)
+  if (rank target sama dengan rank baru?) then (ya)
+    :Selesai tanpa perubahan;
+    stop
+  else (tidak)
+    :Cari kriteria pemilik rank baru (occupant);
+    :Set rank baru untuk target;
+    if (Occupant ditemukan?) then (ya)
+      :Set rank lama target untuk occupant;
+    else (tidak)
+    endif
+    :Commit perubahan batch;
+    stop
+  endif
+endif
+@enduml
+  </pre>
+
+  <h3>4.2 Flowgraph</h3>
+  <pre class="plantuml">
+@startuml
+title Flowgraph - updateCriterionRank()
+circle "1" as N1
+circle "2" as N2
+circle "3" as N3
+circle "4" as N4
+circle "5" as N5
+circle "6" as N6
+circle "7" as N7
+circle "8" as N8
+circle "9" as N9
+circle "10" as N10
+N1 --> N2
+N2 --> N3 : target tidak ada
+N2 --> N4 : target ada
+N3 --> N10
+N4 --> N5 : rank sama
+N4 --> N6 : rank berbeda
+N5 --> N10
+N6 --> N7
+N7 --> N8 : occupant ada
+N7 --> N9 : occupant tidak ada
+N8 --> N9
+N9 --> N10
+@enduml
+  </pre>
+  <p style="font-size:12.5px;color:#52525b">
+    Node: 1 = ambil &amp; cari target · 2 = cek target ada · 3 = throw · 4 = cek rank sama ·
+    5 = return tanpa ubah · 6 = cari occupant &amp; set rank target · 7 = cek occupant ·
+    8 = set rank lama ke occupant · 9 = commit batch · 10 = selesai.
+  </p>
+
+  <h3>4.3 Cyclomatic Complexity</h3>
+  <table>
+    <thead><tr><th>Komponen</th><th>Nilai</th><th>Perhitungan</th></tr></thead>
+    <tbody>
+      <tr><td>Edge (E)</td><td>12</td><td>Jumlah panah pada flowgraph</td></tr>
+      <tr><td>Node (N)</td><td>10</td><td>Jumlah simpul pada flowgraph</td></tr>
+      <tr><td>Predikat</td><td>3</td><td>Node 2, 4, 7</td></tr>
+      <tr><td>V(G) = E − N + 2P</td><td>12 − 10 + 2 = <span class="cc">4</span></td><td>P = 1</td></tr>
+      <tr><td>V(G) = Predikat + 1</td><td>3 + 1 = <span class="cc">4</span></td><td>Hasil konsisten</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.4 Basis Path &amp; Test Case</h3>
+  <table>
+    <thead><tr><th>Path</th><th>Jalur Node</th><th>Skenario</th><th>Data Uji</th><th>Hasil Diharapkan</th></tr></thead>
+    <tbody>
+      <tr><td>P1</td><td>1-2-3-10</td><td>Kriteria target tidak ada</td><td>key: "xxx"</td><td>Error "Kriteria tidak ditemukan"</td></tr>
+      <tr><td>P2</td><td>1-2-4-5-10</td><td>Rank baru = rank saat ini</td><td>energy rank 1 → 1</td><td>Tidak ada perubahan</td></tr>
+      <tr><td>P3</td><td>1-2-4-6-7-9-10</td><td>Rank baru belum dipakai</td><td>rank target → rank kosong</td><td>Rank target diperbarui</td></tr>
+      <tr><td>P4</td><td>1-2-4-6-7-8-9-10</td><td>Rank baru dipakai kriteria lain</td><td>cost rank 2 → 1</td><td>Rank energy &amp; cost ditukar</td></tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:13px;color:#71717a;margin-top:30px">
+    <strong>Kesimpulan:</strong> seluruh fungsi inti memiliki nilai cyclomatic complexity
+    pada rentang 2–5 (≤ 10), tergolong <strong>risiko rendah dan mudah diuji</strong>.
+    Jumlah basis path tiap fungsi (3, 2, 5, 4) telah seluruhnya tercakup oleh test case
+    di atas, sehingga setiap independent path pada modul telah teruji minimal satu kali.
+  </p>
+</div>
+</body>
+</html>

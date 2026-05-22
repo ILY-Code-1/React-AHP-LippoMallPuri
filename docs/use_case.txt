@@ -1,0 +1,44 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor "Staff" as staff
+actor "Admin" as admin
+
+rectangle "Enerlyze — Smart Energy Analysis & AHP Decision Engine\n(Lippo Mall Puri)" {
+
+  usecase "Login" as UC1
+  usecase "Ubah Password" as UC2
+  usecase "Lihat Dashboard\nKonsumsi Energi & Skor AHP" as UC3
+  usecase "Kelola Data Energi\nArea (Input/Edit/Hapus)" as UC4
+  usecase "Jalankan Analisis AHP\nBulanan" as UC5
+  usecase "Lihat Laporan Detail AHP" as UC6
+  usecase "Kelola Master User" as UC7
+  usecase "Kelola Master Area" as UC8
+  usecase "Kelola Kriteria AHP\n(Atur Rank)" as UC9
+  usecase "Kelola Notifikasi" as UC10
+  usecase "Unduh Laporan PDF" as UC11
+  usecase "Hapus Hasil AHP" as UC12
+}
+
+staff --> UC1
+staff --> UC2
+staff --> UC3
+staff --> UC4
+staff --> UC10
+
+admin --> UC1
+admin --> UC2
+admin --> UC3
+admin --> UC5
+admin --> UC6
+admin --> UC7
+admin --> UC8
+admin --> UC9
+admin --> UC10
+
+UC11 .> UC6 : <<extend>>
+UC12 .> UC6 : <<extend>>
+
+@enduml

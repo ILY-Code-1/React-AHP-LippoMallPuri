@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Black Box Testing · Enerlyze Lippo Mall Puri</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f4f4f5; color: #27272a;
+    margin: 0; padding: 40px 20px; line-height: 1.55; }
+  .page { max-width: 1240px; margin: 0 auto; background: #fff; border: 1px solid #e4e4e7;
+    border-radius: 14px; padding: 44px 48px; }
+  h1 { font-size: 24px; margin: 0 0 4px; color: #18181b; }
+  .sub { color: #71717a; font-size: 14px; margin-bottom: 28px; }
+  h2 { font-size: 15px; color: #18181b; margin: 28px 0 8px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid #e4e4e7; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #18181b; color: #fff; font-size: 10.5px; text-transform: uppercase; letter-spacing: .3px; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .uc { background: #e4e4e7 !important; font-weight: 700; color: #18181b; }
+  .ok { color: #059669; font-weight: 700; }
+  .status { text-align: center; }
+  code { background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 3px; padding: 0 4px; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Black Box Testing</h1>
+  <div class="sub">
+    Aplikasi <strong>Enerlyze</strong> — Smart Energy Analysis &amp; AHP Decision Engine · Lippo Mall Puri<br>
+    Pengujian fungsional seluruh fitur — tiap fitur diuji dengan skenario sukses dan skenario gagal.
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:28px">No</th>
+        <th style="width:150px">Deskripsi Pengujian</th>
+        <th style="width:220px">Langkah Uji</th>
+        <th style="width:160px">Data Uji</th>
+        <th style="width:200px">Hasil yang Diharapkan</th>
+        <th style="width:120px">Hasil Pengujian</th>
+        <th style="width:70px">Status</th>
+        <th>Keterangan</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="uc" colspan="8">UC-01 · Login</td></tr>
+      <tr>
+        <td>1</td>
+        <td>Login dengan kredensial benar</td>
+        <td>1. Buka halaman Login. 2. Isi email &amp; password. 3. Klik Login.</td>
+        <td>email: <code>admin@lippomall.com</code><br>password: <code>Test1234@</code></td>
+        <td>Sesi dibuat, pengguna diarahkan ke Dashboard sesuai role.</td>
+        <td>Diarahkan ke Dashboard Admin.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Login dengan password salah</td>
+        <td>1. Buka halaman Login. 2. Isi email benar, password salah. 3. Klik Login.</td>
+        <td>email: <code>admin@lippomall.com</code><br>password: <code>salah123</code></td>
+        <td>Login ditolak, muncul pesan "Email atau password salah".</td>
+        <td>Muncul pesan kesalahan, tetap di halaman Login.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+
+      <tr><td class="uc" colspan="8">UC-02 · Ubah Password</td></tr>
+      <tr>
+        <td>3</td>
+        <td>Ubah password dengan data benar</td>
+        <td>1. Buka dialog Ubah Password. 2. Isi password lama, baru, konfirmasi. 3. Klik Simpan.</td>
+        <td>lama: <code>Test1234@</code><br>baru: <code>Baru2026@</code></td>
+        <td>Password diperbarui, muncul notifikasi berhasil.</td>
+        <td>Password berhasil diganti.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Ubah password — konfirmasi tidak cocok</td>
+        <td>1. Buka dialog Ubah Password. 2. Isi konfirmasi berbeda dari password baru. 3. Klik Simpan.</td>
+        <td>baru: <code>Baru2026@</code><br>konfirmasi: <code>Baru9999@</code></td>
+        <td>Penyimpanan ditolak, muncul pesan "Konfirmasi password tidak cocok".</td>
+        <td>Muncul pesan kesalahan validasi.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+
+      <tr><td class="uc" colspan="8">UC-03 · Lihat Dashboard</td></tr>
+      <tr>
+        <td>5</td>
+        <td>Menampilkan KPI &amp; grafik skor AHP</td>
+        <td>1. Login. 2. Buka Dashboard. 3. Pilih rentang "6 bulan terakhir".</td>
+        <td>Range: 6 bulan</td>
+        <td>Kartu KPI &amp; grafik skor AHP per area tampil sesuai periode.</td>
+        <td>KPI dan grafik tampil benar.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>Dashboard saat belum ada area</td>
+        <td>1. Login. 2. Buka Dashboard pada sistem tanpa area.</td>
+        <td>Jumlah area = 0</td>
+        <td>Grafik menampilkan pesan "Belum ada area terdaftar", tanpa error.</td>
+        <td>Pesan kosong tampil, aplikasi stabil.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+
+      <tr><td class="uc" colspan="8">UC-04 · Kelola Data Energi Area</td></tr>
+      <tr>
+        <td>7</td>
+        <td>Input data energi baru</td>
+        <td>1. Buka halaman Data. 2. Klik Tambah Data. 3. Isi form. 4. Simpan.</td>
+        <td>Area: Lantai 1 · Bulan: 2026-04<br>kWh 84.500 · Biaya 118.000.000</td>
+        <td>Data tersimpan, muncul notifikasi "Data ditambahkan".</td>
+        <td>Data baru tampil di tabel.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td>Input data ganda (area &amp; bulan sama)</td>
+        <td>1. Klik Tambah Data. 2. Isi area &amp; bulan yang sudah punya data. 3. Simpan.</td>
+        <td>Area: Lantai 1 · Bulan: 2026-04 (sudah ada)</td>
+        <td>Penyimpanan ditolak, muncul pesan "Data untuk area &amp; bulan ini sudah ada".</td>
+        <td>Muncul pesan duplikasi data.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+
+      <tr><td class="uc" colspan="8">UC-05 · Jalankan Analisis AHP</td></tr>
+      <tr>
+        <td>9</td>
+        <td>Jalankan AHP saat data lengkap</td>
+        <td>1. Buka Data Admin. 2. Pilih bulan dengan semua area terisi. 3. Klik Run AHP &amp; konfirmasi.</td>
+        <td>Bulan: 2026-04 · semua area terisi</td>
+        <td>AHP dihitung &amp; tersimpan, ranking prioritas tampil.</td>
+        <td>Ranking &amp; skor AHP tampil.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td>Jalankan AHP saat data belum lengkap</td>
+        <td>1. Buka Data Admin. 2. Pilih bulan dengan sebagian area kosong. 3. Amati tombol Run AHP.</td>
+        <td>Bulan: 2026-05 · 3 dari 5 area terisi</td>
+        <td>Tombol Run AHP nonaktif &amp; muncul info "Data belum lengkap di semua area".</td>
+        <td>Tombol nonaktif, AHP tidak dapat dijalankan.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+
+      <tr><td class="uc" colspan="8">UC-06 · Lihat Laporan Detail AHP</td></tr>
+      <tr>
+        <td>11</td>
+        <td>Buka laporan bulan yang sudah di-AHP</td>
+        <td>1. Buka Data Admin. 2. Klik View Detail pada bulan ber-hasil AHP.</td>
+        <td>Bulan: 2026-04</td>
+        <td>Laporan lengkap tampil: ranking, pairwise matrix, rekomendasi.</td>
+        <td>Laporan lengkap tampil di tab baru.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+      <tr>
+        <td>12</td>
+        <td>Buka laporan bulan tanpa hasil AHP</td>
+        <td>1. Klik View Detail pada bulan yang AHP-nya belum dijalankan.</td>
+        <td>Bulan: 2026-05</td>
+        <td>Laporan menampilkan data input mentah dengan badge "AHP belum dijalankan".</td>
+        <td>Tampil data input tanpa ranking.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+
+      <tr><td class="uc" colspan="8">UC-07 · Kelola Master User</td></tr>
+      <tr>
+        <td>13</td>
+        <td>Tambah user baru</td>
+        <td>1. Buka Master User. 2. Klik Tambah User. 3. Isi form. 4. Simpan.</td>
+        <td>Nama: Budi Santoso · Role: staff<br>password: <code>Staff2026@</code></td>
+        <td>User tersimpan &amp; muncul di tabel.</td>
+        <td>User baru tampil di daftar.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+      <tr>
+        <td>14</td>
+        <td>Hapus user yang masih memegang area</td>
+        <td>1. Buka Master User. 2. Klik Hapus pada user penanggung jawab area. 3. Konfirmasi.</td>
+        <td>User: Andi Pratama (PJ Lantai 1)</td>
+        <td>Penghapusan ditolak, muncul pesan user masih ditugaskan pada area.</td>
+        <td>User gagal dihapus, pesan tampil.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+
+      <tr><td class="uc" colspan="8">UC-08 · Kelola Master Area</td></tr>
+      <tr>
+        <td>15</td>
+        <td>Tambah area baru</td>
+        <td>1. Buka Master Area. 2. Klik Tambah Area. 3. Isi nama, deskripsi, PJ. 4. Simpan.</td>
+        <td>Nama: Lantai 2 · PJ: Budi Santoso</td>
+        <td>Area tersimpan &amp; muncul di tabel.</td>
+        <td>Area baru tampil di daftar.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+      <tr>
+        <td>16</td>
+        <td>Tambah area tanpa penanggung jawab</td>
+        <td>1. Klik Tambah Area. 2. Isi nama saja, kosongkan PJ. 3. Simpan.</td>
+        <td>Nama: Atrium · PJ: (kosong)</td>
+        <td>Penyimpanan ditolak, muncul pesan "Pilih user penanggung jawab".</td>
+        <td>Muncul pesan validasi.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+
+      <tr><td class="uc" colspan="8">UC-09 · Kelola Kriteria AHP</td></tr>
+      <tr>
+        <td>17</td>
+        <td>Ubah rank kriteria</td>
+        <td>1. Buka Master AHP. 2. Klik Edit pada kriteria Biaya Listrik. 3. Pilih Rank 1. 4. Simpan.</td>
+        <td>Kriteria: Biaya Listrik · Rank baru: 1</td>
+        <td>Rank diperbarui, kriteria pemilik rank 1 sebelumnya ditukar otomatis.</td>
+        <td>Rank tertukar, tabel diperbarui.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+      <tr>
+        <td>18</td>
+        <td>Ubah rank ke nilai yang sama</td>
+        <td>1. Klik Edit kriteria. 2. Pilih rank yang sama dengan rank saat ini. 3. Simpan.</td>
+        <td>Kriteria: Konsumsi Energi · Rank: 1 → 1</td>
+        <td>Sistem tidak melakukan perubahan, tabel tetap konsisten.</td>
+        <td>Tidak ada perubahan rank.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+
+      <tr><td class="uc" colspan="8">UC-10 · Kelola Notifikasi</td></tr>
+      <tr>
+        <td>19</td>
+        <td>Buka notifikasi &amp; navigasi</td>
+        <td>1. Klik ikon lonceng. 2. Klik salah satu notifikasi.</td>
+        <td>Notifikasi "missing-data" → /dashboard/data</td>
+        <td>Daftar notifikasi tampil; klik mengarahkan ke halaman terkait.</td>
+        <td>Navigasi ke halaman Data berhasil.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+      <tr>
+        <td>20</td>
+        <td>Tandai semua notifikasi terbaca</td>
+        <td>1. Klik ikon lonceng. 2. Klik "Tandai semua terbaca".</td>
+        <td>3 notifikasi aktif</td>
+        <td>Seluruh notifikasi terhapus, indikator lonceng kosong.</td>
+        <td>Daftar notifikasi kosong.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+
+      <tr><td class="uc" colspan="8">UC-11 · Unduh Laporan PDF</td></tr>
+      <tr>
+        <td>21</td>
+        <td>Unduh laporan AHP ke PDF</td>
+        <td>1. Buka Laporan Detail AHP. 2. Klik tombol "Unduh PDF".</td>
+        <td>Laporan AHP-2026-04</td>
+        <td>Berkas <code>Laporan-AHP-2026-04.pdf</code> terunduh ke perangkat.</td>
+        <td>PDF berhasil diunduh.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+      <tr>
+        <td>22</td>
+        <td>Unduh PDF saat konten gagal dirender</td>
+        <td>1. Buka laporan. 2. Klik Unduh PDF saat proses render gagal.</td>
+        <td>Simulasi kegagalan render</td>
+        <td>Muncul notifikasi "Gagal membuat PDF", aplikasi tetap stabil.</td>
+        <td>Notifikasi gagal tampil, tidak crash.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+
+      <tr><td class="uc" colspan="8">UC-12 · Hapus Hasil AHP</td></tr>
+      <tr>
+        <td>23</td>
+        <td>Hapus hasil AHP suatu bulan</td>
+        <td>1. Buka Laporan Detail AHP. 2. Klik "Hapus Laporan". 3. Konfirmasi.</td>
+        <td>Laporan AHP-2026-04</td>
+        <td>Hasil AHP dihapus; laporan beralih ke tampilan data input mentah.</td>
+        <td>Hasil AHP terhapus, data input tetap ada.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+      <tr>
+        <td>24</td>
+        <td>Batalkan penghapusan hasil AHP</td>
+        <td>1. Klik "Hapus Laporan". 2. Pada dialog konfirmasi, klik Batal.</td>
+        <td>Laporan AHP-2026-04</td>
+        <td>Penghapusan dibatalkan, hasil AHP tetap utuh.</td>
+        <td>Hasil AHP tidak berubah.</td>
+        <td class="status ok">Valid</td>
+        <td>Sesuai harapan.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:13px;color:#71717a;margin-top:24px">
+    <strong>Kesimpulan:</strong> 24 skenario pengujian black box pada 12 fitur Enerlyze
+    seluruhnya menghasilkan status <span class="ok">Valid</span> — perilaku aplikasi
+    sesuai dengan hasil yang diharapkan, baik pada skenario sukses maupun skenario gagal.
+  </p>
+</div>
+</body>
+</html>

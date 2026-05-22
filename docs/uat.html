@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>User Acceptance Testing · Enerlyze Lippo Mall Puri</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f4f4f5; color: #27272a;
+    margin: 0; padding: 40px 20px; line-height: 1.55; }
+  .page { max-width: 1200px; margin: 0 auto; background: #fff; border: 1px solid #e4e4e7;
+    border-radius: 14px; padding: 44px 48px; }
+  h1 { font-size: 24px; margin: 0 0 4px; color: #18181b; }
+  .sub { color: #71717a; font-size: 14px; margin-bottom: 28px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12px; }
+  th, td { border: 1px solid #e4e4e7; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #18181b; color: #fff; font-size: 10.5px; text-transform: uppercase; letter-spacing: .3px; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .pass { color: #059669; font-weight: 700; text-align: center; }
+  .role { font-weight: 700; color: #18181b; }
+  code { background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 3px; padding: 0 4px; font-size: 11px; }
+  .summary { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px;
+    padding: 12px 16px; font-size: 13px; color: #065f46; margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>User Acceptance Testing (UAT)</h1>
+  <div class="sub">
+    Aplikasi <strong>Enerlyze</strong> — Smart Energy Analysis &amp; AHP Decision Engine · Lippo Mall Puri<br>
+    Pengujian penerimaan dari sudut pandang pengguna akhir. Role penguji: <strong>Admin</strong> &amp;
+    <strong>Staff</strong> — sesuai aktor pada use case diagram.
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:28px">No</th>
+        <th style="width:170px">Skenario Pengujian</th>
+        <th style="width:70px">Role</th>
+        <th style="width:140px">Fitur yang Diuji</th>
+        <th style="width:300px">Langkah Pengujian</th>
+        <th style="width:260px">Ekspektasi Hasil</th>
+        <th style="width:70px">Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Staff masuk ke sistem untuk mulai bekerja</td>
+        <td class="role">Staff</td>
+        <td>Login</td>
+        <td>Membuka aplikasi, memasukkan email &amp; password staff, menekan tombol Login.</td>
+        <td>Berhasil masuk dan diarahkan ke Dashboard Staff.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Admin masuk ke sistem untuk mengelola data</td>
+        <td class="role">Admin</td>
+        <td>Login</td>
+        <td>Membuka aplikasi, memasukkan email &amp; password admin, menekan tombol Login.</td>
+        <td>Berhasil masuk dan diarahkan ke Dashboard Admin.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Pengguna mengganti password demi keamanan akun</td>
+        <td class="role">Staff</td>
+        <td>Ubah Password</td>
+        <td>Membuka menu Ubah Password, mengisi password lama &amp; password baru, menekan Simpan.</td>
+        <td>Muncul notifikasi password berhasil diperbarui dan dapat dipakai login berikutnya.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>Staff memantau ringkasan konsumsi energi areanya</td>
+        <td class="role">Staff</td>
+        <td>Lihat Dashboard</td>
+        <td>Membuka halaman Dashboard, memilih rentang periode pada dropdown.</td>
+        <td>Kartu KPI dan grafik skor AHP per area tampil sesuai periode yang dipilih.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>Staff menginput data energi bulanan areanya</td>
+        <td class="role">Staff</td>
+        <td>Kelola Data Energi</td>
+        <td>Membuka halaman Data, memilih area &amp; bulan, klik Tambah Data, mengisi kWh, biaya, durasi, maintenance, lalu Simpan.</td>
+        <td>Data energi tersimpan dan tampil pada tabel area &amp; bulan terkait.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>Staff memperbaiki data energi yang keliru</td>
+        <td class="role">Staff</td>
+        <td>Kelola Data Energi</td>
+        <td>Memilih data yang sudah ada, klik ikon Edit, mengubah nilai, lalu Simpan.</td>
+        <td>Nilai data energi diperbarui sesuai input terbaru.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>7</td>
+        <td>Admin menjalankan analisis prioritas optimasi energi</td>
+        <td class="role">Admin</td>
+        <td>Jalankan Analisis AHP</td>
+        <td>Membuka Data Admin, memilih bulan dengan data lengkap, klik Run AHP, mengonfirmasi.</td>
+        <td>Sistem menghitung &amp; menampilkan ranking prioritas area beserta skor AHP.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>8</td>
+        <td>Admin meninjau laporan detail hasil AHP</td>
+        <td class="role">Admin</td>
+        <td>Lihat Laporan Detail AHP</td>
+        <td>Pada Data Admin, klik View Detail untuk bulan terpilih.</td>
+        <td>Laporan tampil lengkap: ranking, pairwise matrix, kontribusi kriteria, &amp; rekomendasi tindakan.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>9</td>
+        <td>Admin mengunduh laporan AHP untuk arsip/rapat</td>
+        <td class="role">Admin</td>
+        <td>Unduh Laporan PDF</td>
+        <td>Pada halaman laporan, klik tombol Unduh PDF.</td>
+        <td>Berkas PDF laporan AHP terunduh ke perangkat dengan tampilan rapi.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>10</td>
+        <td>Admin menghapus hasil AHP yang tidak terpakai</td>
+        <td class="role">Admin</td>
+        <td>Hapus Hasil AHP</td>
+        <td>Pada halaman laporan, klik Hapus Laporan lalu konfirmasi.</td>
+        <td>Hasil AHP terhapus, sedangkan data input energi tetap tersimpan.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>11</td>
+        <td>Admin menambah akun pengguna baru</td>
+        <td class="role">Admin</td>
+        <td>Kelola Master User</td>
+        <td>Membuka Master User, klik Tambah User, mengisi nama, email, role, password, lalu Simpan.</td>
+        <td>Akun pengguna baru tersimpan &amp; tampil pada daftar user.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>12</td>
+        <td>Admin mereset password pengguna yang lupa</td>
+        <td class="role">Admin</td>
+        <td>Kelola Master User</td>
+        <td>Pada Master User, klik ikon Reset Password pada user terkait, lalu konfirmasi.</td>
+        <td>Password user direset ke nilai default dan ditampilkan ke admin.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>13</td>
+        <td>Admin mendaftarkan area gedung beserta penanggung jawab</td>
+        <td class="role">Admin</td>
+        <td>Kelola Master Area</td>
+        <td>Membuka Master Area, klik Tambah Area, mengisi nama &amp; deskripsi, memilih user PJ, lalu Simpan.</td>
+        <td>Area baru tersimpan dengan satu user penanggung jawab.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>14</td>
+        <td>Admin menyesuaikan prioritas kriteria penilaian</td>
+        <td class="role">Admin</td>
+        <td>Kelola Kriteria AHP</td>
+        <td>Membuka Master AHP, klik Edit pada kriteria, memilih rank baru, lalu Simpan.</td>
+        <td>Rank kriteria diperbarui &amp; rank kriteria lain tertukar otomatis agar tetap unik.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>15</td>
+        <td>Staff memeriksa notifikasi pengingat input data</td>
+        <td class="role">Staff</td>
+        <td>Kelola Notifikasi</td>
+        <td>Klik ikon lonceng, membaca daftar notifikasi, mengklik salah satu notifikasi.</td>
+        <td>Daftar notifikasi tampil &amp; klik mengarahkan ke halaman input data terkait.</td>
+        <td class="pass">Pass</td>
+      </tr>
+      <tr>
+        <td>16</td>
+        <td>Admin membersihkan seluruh notifikasi</td>
+        <td class="role">Admin</td>
+        <td>Kelola Notifikasi</td>
+        <td>Klik ikon lonceng, klik "Tandai semua terbaca".</td>
+        <td>Seluruh notifikasi terhapus dan indikator lonceng menjadi kosong.</td>
+        <td class="pass">Pass</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="summary">
+    <strong>Kesimpulan UAT:</strong> 16 skenario penerimaan yang mencakup seluruh 12 fitur Enerlyze
+    dan diuji oleh role Admin serta Staff seluruhnya berstatus <strong>Pass</strong>. Aplikasi
+    dinyatakan dapat diterima dan layak digunakan oleh pengguna akhir di lingkungan Lippo Mall Puri.
+  </div>
+</div>
+</body>
+</html>

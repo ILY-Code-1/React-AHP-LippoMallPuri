@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Desain Basis Data v1 — Firestore NoSQL · Enerlyze Lippo Mall Puri</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f4f4f5; color: #27272a; margin: 0; padding: 40px 20px;
+    line-height: 1.65;
+  }
+  .page {
+    max-width: 1040px; margin: 0 auto; background: #fff;
+    border: 1px solid #e4e4e7; border-radius: 14px; padding: 48px 56px;
+  }
+  h1 { font-size: 26px; margin: 0 0 4px; color: #18181b; }
+  .sub { color: #71717a; font-size: 14px; margin-bottom: 32px; }
+  h2 {
+    font-size: 18px; color: #18181b; margin: 40px 0 14px;
+    padding-bottom: 8px; border-bottom: 2px solid #18181b;
+  }
+  h2 .no { color: #a1a1aa; font-family: monospace; margin-right: 8px; }
+  p { font-size: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; margin-top: 14px; }
+  th, td { border: 1px solid #e4e4e7; padding: 9px 12px; text-align: left; vertical-align: top; }
+  th { background: #18181b; color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+  tr:nth-child(even) td { background: #fafafa; }
+  code { background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 4px; padding: 1px 5px; font-size: 12px; }
+  .tree { font-size: 13px; }
+  .tree ul { list-style: none; margin: 0; padding-left: 22px; border-left: 1px dashed #d4d4d8; }
+  .tree > ul { padding-left: 0; border: none; }
+  .tree li { margin: 6px 0; }
+  .col { font-weight: 700; color: #18181b; }
+  .col::before { content: "📁 "; }
+  .field { color: #52525b; }
+  .type { color: #2563eb; font-family: monospace; font-size: 12px; }
+  pre.plantuml {
+    background: #18181b; color: #e4e4e7; padding: 18px 20px; border-radius: 10px;
+    font-size: 12.5px; overflow-x: auto; line-height: 1.5;
+  }
+  .note { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #92400e; }
+  .pill { display: inline-block; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;
+    border-radius: 99px; padding: 1px 9px; font-size: 11px; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Desain Basis Data — Firestore NoSQL (v1)</h1>
+  <div class="sub">
+    Aplikasi <strong>Enerlyze</strong> · Smart Energy Analysis &amp; AHP Decision Engine — Lippo Mall Puri<br>
+    Cloud Firestore (NoSQL document database) · Firebase
+  </div>
+
+  <h2><span class="no">01</span>Strategi Pemodelan NoSQL</h2>
+  <p>
+    Enerlyze menggunakan <strong>kombinasi strategi Referencing dan Embedding</strong> yang dipilih
+    sesuai karakteristik tiap fitur aplikasi:
+  </p>
+  <p>
+    <strong>Referencing (normalisasi)</strong> dipakai pada entitas master yang berdiri sendiri dan
+    sering berubah. Koleksi <code>areas_enerlyze</code> menyimpan <code>user_id</code> sebagai
+    referensi ke <code>users_enerlyze</code> (penanggung jawab area), dan <code>data_enerlyze</code>
+    menyimpan <code>area_id</code> serta <code>created_by</code> sebagai referensi. Pendekatan ini
+    dipilih karena satu user dapat memegang banyak area dan satu area memiliki banyak catatan energi
+    lintas bulan — meng-<em>embed</em> data tersebut akan menduplikasi informasi dan menyulitkan
+    proses edit master User/Area.
+  </p>
+  <p>
+    <strong>Embedding (denormalisasi)</strong> dipakai pada koleksi <code>ahp_results_enerlyze</code>.
+    Saat fitur <em>Jalankan Analisis AHP</em> dieksekusi, hasil perhitungan — array <code>criteria</code>
+    (bobot tiap kriteria), matriks <code>criteria_matrix</code>, dan <code>ranking</code> (skor prioritas
+    tiap area) — disimpan langsung sebagai array/map di dalam satu dokumen hasil. Hasil AHP bersifat
+    <em>snapshot historis</em>: sekali dihitung untuk satu bulan, nilainya tidak boleh ikut berubah
+    walau master Area atau Kriteria kemudian disunting. Embedding menjaga laporan tetap konsisten dan
+    membuat halaman <em>Laporan Detail AHP</em> cukup membaca satu dokumen.
+  </p>
+  <p>
+    Contoh konkret: dokumen <code>ahp_results_enerlyze/2026-04</code> menyimpan <code>ahp_id</code>
+    "AHP-2026-04", objek <code>consistency</code> berisi <code>cr</code> = 0.041, serta array
+    <code>ranking</code> yang sudah memuat <code>area_name</code> "Lantai 1" hasil snapshot —
+    tanpa perlu join ke <code>areas_enerlyze</code>.
+  </p>
+
+  <h2><span class="no">02</span>Struktur Koleksi</h2>
+  <p>Enam koleksi root pada Firestore. Setiap koleksi diberi sufiks <code>_enerlyze</code> sesuai konvensi proyek.</p>
+  <div class="tree">
+  <ul>
+    <li>
+      <span class="col">users_enerlyze</span> &nbsp;<span style="color:#a1a1aa;font-size:12px">— doc ID: auto (mis. <code>u_8Kx2Lp</code>)</span>
+      <ul>
+        <li><span class="field">name</span> <span class="type">string</span></li>
+        <li><span class="field">email</span> <span class="type">string</span></li>
+        <li><span class="field">password</span> <span class="type">string</span> — format <code>salt:hash</code> (PBKDF2)</li>
+        <li><span class="field">role</span> <span class="type">string</span> — <code>"admin"</code> | <code>"staff"</code></li>
+        <li><span class="field">created_at</span> <span class="type">timestamp</span></li>
+        <li><span class="field">updated_at</span> <span class="type">timestamp</span></li>
+      </ul>
+    </li>
+    <li>
+      <span class="col">areas_enerlyze</span> &nbsp;<span style="color:#a1a1aa;font-size:12px">— doc ID: auto (mis. <code>ar_L1Gf9</code>)</span>
+      <ul>
+        <li><span class="field">name</span> <span class="type">string</span> — mis. "Lantai 1"</li>
+        <li><span class="field">description</span> <span class="type">string</span> — mis. "Lobby, Food Court"</li>
+        <li><span class="field">user_id</span> <span class="type">string · ref → users_enerlyze</span></li>
+        <li><span class="field">created_at</span> <span class="type">timestamp</span></li>
+        <li><span class="field">updated_at</span> <span class="type">timestamp</span></li>
+      </ul>
+    </li>
+    <li>
+      <span class="col">criteria_enerlyze</span> &nbsp;<span style="color:#a1a1aa;font-size:12px">— doc ID = key (<code>energy</code>, <code>cost</code>, <code>duration</code>, <code>maintenance</code>)</span>
+      <ul>
+        <li><span class="field">key</span> <span class="type">string</span> — identitas stabil kriteria</li>
+        <li><span class="field">code</span> <span class="type">string</span> — KE / BL / DO / FM</li>
+        <li><span class="field">name</span> <span class="type">string</span></li>
+        <li><span class="field">rank</span> <span class="type">number</span> — 1..4 (unik)</li>
+      </ul>
+    </li>
+    <li>
+      <span class="col">data_enerlyze</span> &nbsp;<span style="color:#a1a1aa;font-size:12px">— doc ID: auto (mis. <code>dt_Apr01</code>)</span>
+      <ul>
+        <li><span class="field">area_id</span> <span class="type">string · ref → areas_enerlyze</span></li>
+        <li><span class="field">month</span> <span class="type">string</span> — format <code>YYYY-MM</code></li>
+        <li><span class="field">energy</span> <span class="type">number</span> — kWh</li>
+        <li><span class="field">energy_area_m2</span> <span class="type">number</span> — luas area (m²)</li>
+        <li><span class="field">cost</span> <span class="type">number</span> — Rupiah</li>
+        <li><span class="field">duration</span> <span class="type">number</span> — jam operasional</li>
+        <li><span class="field">maintenance</span> <span class="type">number</span> — frekuensi/bulan</li>
+        <li><span class="field">created_by</span> <span class="type">string · ref → users_enerlyze</span></li>
+        <li><span class="field">created_at</span> / <span class="field">updated_at</span> <span class="type">timestamp</span></li>
+      </ul>
+    </li>
+    <li>
+      <span class="col">ahp_results_enerlyze</span> &nbsp;<span style="color:#a1a1aa;font-size:12px">— doc ID = month key (mis. <code>2026-04</code>)</span>
+      <ul>
+        <li><span class="field">month</span> <span class="type">string</span> · <span class="field">ahp_id</span> <span class="type">string</span> — mis. "AHP-2026-04"</li>
+        <li><span class="field">criteria</span> <span class="type">array&lt;map&gt;</span> — <em>embedded</em>: {key, code, name, rank, weight}</li>
+        <li><span class="field">criteria_matrix</span> <span class="type">array&lt;array&lt;number&gt;&gt;</span> — matriks pairwise 4×4</li>
+        <li><span class="field">criteria_weights</span> <span class="type">array&lt;number&gt;</span></li>
+        <li><span class="field">consistency</span> <span class="type">map</span> — {lambdaMax, ci, cr, isConsistent}</li>
+        <li><span class="field">ranking</span> <span class="type">array&lt;map&gt;</span> — <em>embedded</em>: {area_id, area_name, area_description, score, breakdown, rank}</li>
+        <li><span class="field">created_by</span> <span class="type">string</span> · <span class="field">created_at</span> <span class="type">timestamp</span></li>
+      </ul>
+    </li>
+    <li>
+      <span class="col">notifications_enerlyze</span> &nbsp;<span style="color:#a1a1aa;font-size:12px">— doc ID: auto</span>
+      <ul>
+        <li><span class="field">user_id</span> <span class="type">string · ref → users_enerlyze</span></li>
+        <li><span class="field">type</span> <span class="type">string</span> — <code>"missing-data"</code> | <code>"ahp-pending"</code></li>
+        <li><span class="field">message</span> <span class="type">string</span></li>
+        <li><span class="field">link</span> <span class="type">string</span> — rute tujuan saat notifikasi diklik</li>
+        <li><span class="field">created_at</span> <span class="type">timestamp</span></li>
+      </ul>
+    </li>
+  </ul>
+  </div>
+  <p style="margin-top:14px;font-size:13px;color:#71717a">
+    Relasi antar koleksi diwujudkan lewat field referensi ID:
+    <code>areas_enerlyze.user_id</code> → <code>users_enerlyze</code>,
+    <code>data_enerlyze.area_id</code> → <code>areas_enerlyze</code>,
+    <code>data_enerlyze.created_by</code> &amp; <code>notifications_enerlyze.user_id</code> → <code>users_enerlyze</code>.
+  </p>
+
+  <h2><span class="no">03</span>Struktur Logis — Object Diagram</h2>
+  <p>
+    Diagram objek PlantUML berikut menggambarkan contoh dokumen nyata dari tiap koleksi beserta
+    keterhubungan referensinya. Salin kode di dalam blok dan render melalui PlantUML.
+  </p>
+  <pre class="plantuml">
+@startuml
+title Object Diagram - Contoh Dokumen Firestore Enerlyze
+
+object "user : users_enerlyze" as user {
+  id = "u_8Kx2Lp"
+  name = "Andi Pratama"
+  email = "andi@lippomall.com"
+  role = "staff"
+}
+
+object "admin : users_enerlyze" as admin {
+  id = "u_Ad01"
+  name = "Rina Wijaya"
+  email = "admin@lippomall.com"
+  role = "admin"
+}
+
+object "area : areas_enerlyze" as area {
+  id = "ar_L1Gf9"
+  name = "Lantai 1"
+  description = "Lobby, Food Court"
+  user_id = "u_8Kx2Lp"
+}
+
+object "energi : data_enerlyze" as data {
+  id = "dt_Apr01"
+  area_id = "ar_L1Gf9"
+  month = "2026-04"
+  energy = 84500
+  cost = 118000000
+  duration = 16
+  maintenance = 2
+  created_by = "u_8Kx2Lp"
+}
+
+object "kriteria : criteria_enerlyze" as crit {
+  key = "energy"
+  code = "KE"
+  name = "Konsumsi Energi (kWh)"
+  rank = 1
+}
+
+object "hasil : ahp_results_enerlyze" as ahp {
+  id = "2026-04"
+  ahp_id = "AHP-2026-04"
+  consistency.cr = 0.041
+  ranking[0].area_name = "Lantai 1"
+  ranking[0].score = 0.318
+}
+
+object "notif : notifications_enerlyze" as notif {
+  user_id = "u_8Kx2Lp"
+  type = "missing-data"
+  message = "Belum input data area Lantai 1"
+  link = "/dashboard/data"
+}
+
+area --> user : user_id
+data --> area : area_id
+data --> user : created_by
+notif --> user : user_id
+ahp ..> data : sumber perhitungan
+ahp ..> crit : memakai bobot kriteria
+@enduml
+  </pre>
+
+  <h2><span class="no">04</span>Spesifikasi Basis Data</h2>
+  <p>Dokumentasi seluruh field dari keenam koleksi Firestore.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>No</th><th>Nama Field</th><th>Tipe Data</th><th>Koleksi</th>
+        <th>Deskripsi</th><th>Constraint / Index</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>name</td><td>string</td><td>users_enerlyze</td><td>Nama lengkap pengguna sistem.</td><td>required</td></tr>
+      <tr><td>2</td><td>email</td><td>string</td><td>users_enerlyze</td><td>Email sebagai identitas login.</td><td>required, unique, indexed (query login)</td></tr>
+      <tr><td>3</td><td>password</td><td>string</td><td>users_enerlyze</td><td>Password tersimpan sebagai <code>salt:hash</code> PBKDF2.</td><td>required</td></tr>
+      <tr><td>4</td><td>role</td><td>string</td><td>users_enerlyze</td><td>Peran akses: admin atau staff.</td><td>required, enum(admin|staff)</td></tr>
+      <tr><td>5</td><td>created_at</td><td>timestamp</td><td>users_enerlyze</td><td>Waktu pembuatan akun.</td><td>serverTimestamp</td></tr>
+      <tr><td>6</td><td>updated_at</td><td>timestamp</td><td>users_enerlyze</td><td>Waktu pembaruan terakhir akun.</td><td>serverTimestamp</td></tr>
+      <tr><td>7</td><td>name</td><td>string</td><td>areas_enerlyze</td><td>Nama area gedung Lippo Mall Puri.</td><td>required</td></tr>
+      <tr><td>8</td><td>description</td><td>string</td><td>areas_enerlyze</td><td>Keterangan/detail isi area.</td><td>optional</td></tr>
+      <tr><td>9</td><td>user_id</td><td>string</td><td>areas_enerlyze</td><td>Referensi user penanggung jawab area.</td><td>required, FK → users_enerlyze, indexed</td></tr>
+      <tr><td>10</td><td>created_at</td><td>timestamp</td><td>areas_enerlyze</td><td>Waktu pembuatan area.</td><td>serverTimestamp</td></tr>
+      <tr><td>11</td><td>updated_at</td><td>timestamp</td><td>areas_enerlyze</td><td>Waktu pembaruan terakhir area.</td><td>serverTimestamp</td></tr>
+      <tr><td>12</td><td>key</td><td>string</td><td>criteria_enerlyze</td><td>Identitas stabil kriteria (= document ID).</td><td>required, unique (doc ID)</td></tr>
+      <tr><td>13</td><td>code</td><td>string</td><td>criteria_enerlyze</td><td>Kode singkat kriteria (KE/BL/DO/FM).</td><td>required</td></tr>
+      <tr><td>14</td><td>name</td><td>string</td><td>criteria_enerlyze</td><td>Nama lengkap kriteria penilaian.</td><td>required</td></tr>
+      <tr><td>15</td><td>rank</td><td>number</td><td>criteria_enerlyze</td><td>Peringkat prioritas kriteria (1 tertinggi).</td><td>required, unique 1..4</td></tr>
+      <tr><td>16</td><td>area_id</td><td>string</td><td>data_enerlyze</td><td>Referensi area pemilik catatan energi.</td><td>required, FK → areas_enerlyze, indexed</td></tr>
+      <tr><td>17</td><td>month</td><td>string</td><td>data_enerlyze</td><td>Periode data, format <code>YYYY-MM</code>.</td><td>required, indexed</td></tr>
+      <tr><td>18</td><td>energy</td><td>number</td><td>data_enerlyze</td><td>Konsumsi energi listrik (kWh).</td><td>required, ≥ 0</td></tr>
+      <tr><td>19</td><td>energy_area_m2</td><td>number</td><td>data_enerlyze</td><td>Luas area (m²) sebagai konteks konsumsi.</td><td>optional, ≥ 0</td></tr>
+      <tr><td>20</td><td>cost</td><td>number</td><td>data_enerlyze</td><td>Biaya listrik (Rupiah).</td><td>required, ≥ 0</td></tr>
+      <tr><td>21</td><td>duration</td><td>number</td><td>data_enerlyze</td><td>Durasi operasional peralatan (jam).</td><td>required, ≥ 0</td></tr>
+      <tr><td>22</td><td>maintenance</td><td>number</td><td>data_enerlyze</td><td>Frekuensi maintenance (x per bulan).</td><td>required, ≥ 0</td></tr>
+      <tr><td>23</td><td>created_by</td><td>string</td><td>data_enerlyze</td><td>Referensi user penginput data.</td><td>FK → users_enerlyze, nullable</td></tr>
+      <tr><td>24</td><td>created_at</td><td>timestamp</td><td>data_enerlyze</td><td>Waktu input data.</td><td>serverTimestamp</td></tr>
+      <tr><td>25</td><td>updated_at</td><td>timestamp</td><td>data_enerlyze</td><td>Waktu pembaruan data.</td><td>serverTimestamp</td></tr>
+      <tr><td>26</td><td>month</td><td>string</td><td>ahp_results_enerlyze</td><td>Periode hasil AHP (= document ID).</td><td>required, unique (doc ID)</td></tr>
+      <tr><td>27</td><td>ahp_id</td><td>string</td><td>ahp_results_enerlyze</td><td>Kode hasil, mis. "AHP-2026-04".</td><td>required</td></tr>
+      <tr><td>28</td><td>criteria</td><td>array&lt;map&gt;</td><td>ahp_results_enerlyze</td><td>Embedded — daftar kriteria + bobot saat analisis.</td><td>embedded snapshot</td></tr>
+      <tr><td>29</td><td>criteria_matrix</td><td>array&lt;array&lt;number&gt;&gt;</td><td>ahp_results_enerlyze</td><td>Matriks pairwise Saaty 4×4 antar kriteria.</td><td>embedded</td></tr>
+      <tr><td>30</td><td>criteria_weights</td><td>array&lt;number&gt;</td><td>ahp_results_enerlyze</td><td>Vektor bobot prioritas kriteria.</td><td>embedded</td></tr>
+      <tr><td>31</td><td>consistency</td><td>map</td><td>ahp_results_enerlyze</td><td>Metrik konsistensi: lambdaMax, ci, cr, isConsistent.</td><td>embedded</td></tr>
+      <tr><td>32</td><td>ranking</td><td>array&lt;map&gt;</td><td>ahp_results_enerlyze</td><td>Embedded — skor &amp; peringkat prioritas tiap area.</td><td>embedded snapshot</td></tr>
+      <tr><td>33</td><td>created_by</td><td>string</td><td>ahp_results_enerlyze</td><td>Nama admin penyusun hasil AHP.</td><td>required</td></tr>
+      <tr><td>34</td><td>created_at</td><td>timestamp</td><td>ahp_results_enerlyze</td><td>Waktu analisis AHP dijalankan.</td><td>serverTimestamp</td></tr>
+      <tr><td>35</td><td>user_id</td><td>string</td><td>notifications_enerlyze</td><td>Referensi user penerima notifikasi.</td><td>required, FK → users_enerlyze, indexed</td></tr>
+      <tr><td>36</td><td>type</td><td>string</td><td>notifications_enerlyze</td><td>Jenis notifikasi (missing-data / ahp-pending).</td><td>required</td></tr>
+      <tr><td>37</td><td>message</td><td>string</td><td>notifications_enerlyze</td><td>Isi pesan notifikasi.</td><td>required</td></tr>
+      <tr><td>38</td><td>link</td><td>string</td><td>notifications_enerlyze</td><td>Rute tujuan saat notifikasi diklik.</td><td>required</td></tr>
+      <tr><td>39</td><td>created_at</td><td>timestamp</td><td>notifications_enerlyze</td><td>Waktu notifikasi dibuat.</td><td>serverTimestamp</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note" style="margin-top:24px">
+    <strong>Catatan integritas:</strong> Firestore tidak menegakkan foreign key secara native.
+    Integritas referensial dijaga di lapisan aplikasi — mis. <span class="pill">GUARD</span>
+    user yang masih memegang area tidak dapat dihapus, area yang masih memiliki catatan
+    <code>data_enerlyze</code> tidak dapat dihapus, dan satu pasangan (area + bulan) hanya boleh
+    memiliki satu dokumen <code>data_enerlyze</code>.
+  </div>
+
+</div>
+</body>
+</html>

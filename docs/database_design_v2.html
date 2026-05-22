@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Desain Basis Data v2 — ERD &amp; LRS Relasional · Enerlyze Lippo Mall Puri</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f4f4f5; color: #27272a;
+    margin: 0; padding: 40px 20px; line-height: 1.65; }
+  .page { max-width: 1040px; margin: 0 auto; background: #fff; border: 1px solid #e4e4e7;
+    border-radius: 14px; padding: 48px 56px; }
+  h1 { font-size: 26px; margin: 0 0 4px; color: #18181b; }
+  .sub { color: #71717a; font-size: 14px; margin-bottom: 32px; }
+  h2 { font-size: 18px; color: #18181b; margin: 40px 0 14px; padding-bottom: 8px;
+    border-bottom: 2px solid #18181b; }
+  h2 .no { color: #a1a1aa; font-family: monospace; margin-right: 8px; }
+  h3 { font-size: 15px; color: #18181b; margin: 24px 0 8px; }
+  p { font-size: 14px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; margin-top: 12px; }
+  th, td { border: 1px solid #e4e4e7; padding: 8px 11px; text-align: left; vertical-align: top; }
+  th { background: #18181b; color: #fff; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; }
+  tr:nth-child(even) td { background: #fafafa; }
+  code { background: #f4f4f5; border: 1px solid #e4e4e7; border-radius: 4px; padding: 1px 5px; font-size: 12px; }
+  pre.plantuml { background: #18181b; color: #e4e4e7; padding: 18px 20px; border-radius: 10px;
+    font-size: 12px; overflow-x: auto; line-height: 1.5; }
+  .pk { color: #b45309; font-weight: 700; }
+  .fk { color: #2563eb; font-weight: 700; }
+  ul.rules { font-size: 13.5px; }
+  ul.rules li { margin: 6px 0; }
+  .tbl-title { background: #18181b; color: #fff; padding: 7px 12px; border-radius: 6px 6px 0 0;
+    font-size: 13px; font-weight: 700; margin-top: 26px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Desain Basis Data — ERD &amp; LRS Relasional (v2)</h1>
+  <div class="sub">
+    Aplikasi <strong>Enerlyze</strong> · Smart Energy Analysis &amp; AHP Decision Engine — Lippo Mall Puri<br>
+    Pemodelan konseptual relasional: ERD → Transformasi LRS → LRS Final → Spesifikasi Tabel
+  </div>
+  <p>
+    Dokumen ini memetakan ulang struktur Firestore NoSQL Enerlyze menjadi model relasional.
+    Array yang ter-<em>embed</em> di dalam <code>ahp_results_enerlyze</code> (yaitu <code>ranking</code>
+    dan <code>criteria</code>) dinormalisasi menjadi tabel tersendiri agar memenuhi kaidah basis data
+    relasional.
+  </p>
+
+  <h2><span class="no">01</span>Entity Relationship Diagram (ERD)</h2>
+  <p>
+    Model Enerlyze terdiri atas enam entitas utama. <strong>USER</strong> adalah penanggung jawab
+    banyak <strong>AREA</strong> sekaligus penginput banyak <strong>ENERGY_DATA</strong>. Tiap
+    <strong>AREA</strong> memiliki banyak catatan <strong>ENERGY_DATA</strong> (satu per bulan).
+    <strong>AHP_RESULT</strong> adalah hasil analisis per bulan; satu hasil memeringkat banyak
+    <strong>AREA</strong> dan menimbang keempat <strong>CRITERIA</strong> — dua hubungan ini
+    bersifat <em>many-to-many</em>. <strong>NOTIFICATION</strong> ditujukan ke satu USER.
+  </p>
+  <pre class="plantuml">
+@startuml
+title ERD - Enerlyze Lippo Mall Puri (Notasi Crow's Foot)
+
+entity "USER" as USER {
+  * user_id : VARCHAR(28) &lt;&lt;PK&gt;&gt;
+  --
+  + name : VARCHAR(100) &lt;&lt;NN&gt;&gt;
+  + email : VARCHAR(120) &lt;&lt;NN&gt;&gt;
+  + password : VARCHAR(160) &lt;&lt;NN&gt;&gt;
+  + role : VARCHAR(10) &lt;&lt;NN&gt;&gt;
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+entity "AREA" as AREA {
+  * area_id : VARCHAR(28) &lt;&lt;PK&gt;&gt;
+  --
+  # user_id : VARCHAR(28) &lt;&lt;FK&gt;&gt;
+  + name : VARCHAR(100) &lt;&lt;NN&gt;&gt;
+  description : VARCHAR(255)
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+entity "CRITERIA" as CRIT {
+  * criteria_key : VARCHAR(20) &lt;&lt;PK&gt;&gt;
+  --
+  + code : VARCHAR(4) &lt;&lt;NN&gt;&gt;
+  + name : VARCHAR(60) &lt;&lt;NN&gt;&gt;
+  + rank : INT &lt;&lt;NN&gt;&gt;
+}
+
+entity "ENERGY_DATA" as DATA {
+  * data_id : VARCHAR(28) &lt;&lt;PK&gt;&gt;
+  --
+  # area_id : VARCHAR(28) &lt;&lt;FK&gt;&gt;
+  # created_by : VARCHAR(28) &lt;&lt;FK&gt;&gt;
+  + period_month : CHAR(7) &lt;&lt;NN&gt;&gt;
+  + energy : DECIMAL(12,2) &lt;&lt;NN&gt;&gt;
+  energy_area_m2 : DECIMAL(10,2)
+  + cost : DECIMAL(15,2) &lt;&lt;NN&gt;&gt;
+  + duration : DECIMAL(6,2) &lt;&lt;NN&gt;&gt;
+  + maintenance : INT &lt;&lt;NN&gt;&gt;
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+entity "AHP_RESULT" as AHP {
+  * ahp_id : VARCHAR(15) &lt;&lt;PK&gt;&gt;
+  --
+  + period_month : CHAR(7) &lt;&lt;NN&gt;&gt;
+  + lambda_max : DECIMAL(8,5) &lt;&lt;NN&gt;&gt;
+  + ci : DECIMAL(8,5) &lt;&lt;NN&gt;&gt;
+  + cr : DECIMAL(8,5) &lt;&lt;NN&gt;&gt;
+  + is_consistent : BOOLEAN &lt;&lt;NN&gt;&gt;
+  + created_by : VARCHAR(100) &lt;&lt;NN&gt;&gt;
+  created_at : TIMESTAMP
+}
+
+entity "NOTIFICATION" as NOTIF {
+  * notification_id : VARCHAR(28) &lt;&lt;PK&gt;&gt;
+  --
+  # user_id : VARCHAR(28) &lt;&lt;FK&gt;&gt;
+  + type : VARCHAR(20) &lt;&lt;NN&gt;&gt;
+  + message : VARCHAR(255) &lt;&lt;NN&gt;&gt;
+  + link : VARCHAR(60) &lt;&lt;NN&gt;&gt;
+  created_at : TIMESTAMP
+}
+
+USER ||--o{ AREA : "bertanggung jawab atas"
+USER ||--o{ DATA : "menginput"
+AREA ||--o{ DATA : "memiliki"
+USER ||--o{ NOTIF : "menerima"
+AHP }o--o{ AREA : "memeringkat (ranking)"
+AHP }o--o{ CRIT : "menimbang (bobot)"
+@enduml
+  </pre>
+
+  <h2><span class="no">02</span>Transformasi ERD ke LRS</h2>
+  <p>
+    Logical Record Structure (LRS) diperoleh dengan menerapkan aturan transformasi pada ERD di atas.
+    Berikut keputusan transformasi yang diambil:
+  </p>
+  <ul class="rules">
+    <li><strong>One-to-Many USER → AREA:</strong> foreign key <code>user_id</code> ditempatkan pada
+      tabel sisi <em>many</em>, yaitu <code>AREA</code>.</li>
+    <li><strong>One-to-Many AREA → ENERGY_DATA</strong> dan <strong>USER → ENERGY_DATA:</strong>
+      foreign key <code>area_id</code> dan <code>created_by</code> ditempatkan pada
+      <code>ENERGY_DATA</code> (sisi many).</li>
+    <li><strong>One-to-Many USER → NOTIFICATION:</strong> foreign key <code>user_id</code>
+      ditempatkan pada <code>NOTIFICATION</code>.</li>
+    <li><strong>Many-to-Many AHP_RESULT ↔ AREA:</strong> menghasilkan tabel junction baru
+      <code>AHP_RANKING</code> dengan primary key gabungan (<code>ahp_id</code> + <code>area_id</code>).
+      Atribut relasi — <code>score</code>, <code>rank_position</code>, serta rincian kontribusi
+      tiap kriteria — ikut ke tabel junction ini.</li>
+    <li><strong>Many-to-Many AHP_RESULT ↔ CRITERIA:</strong> menghasilkan tabel junction baru
+      <code>AHP_RESULT_CRITERIA</code> dengan primary key gabungan (<code>ahp_id</code> +
+      <code>criteria_key</code>). Atribut relasi <code>weight</code> dan <code>rank_used</code>
+      (bobot &amp; rank kriteria pada saat analisis) disimpan di tabel ini.</li>
+    <li><strong>Atribut multivalued <code>breakdown</code></strong> (kontribusi 4 kriteria pada skor
+      tiap area) ditransformasi menjadi empat kolom eksplisit pada <code>AHP_RANKING</code>:
+      <code>breakdown_energy</code>, <code>breakdown_cost</code>, <code>breakdown_duration</code>,
+      <code>breakdown_maintenance</code> — karena jumlah kriteria tetap (4).</li>
+  </ul>
+  <p>Hasil transformasi menghasilkan <strong>8 tabel relasional</strong>:</p>
+  <pre class="plantuml">
+@startuml
+title Transformasi ERD ke LRS - Enerlyze
+
+class USER &lt;&lt;Table&gt;&gt; {
+  + PK user_id : VARCHAR(28)
+  - name : VARCHAR(100)
+  - email : VARCHAR(120)
+  - password : VARCHAR(160)
+  - role : VARCHAR(10)
+  - created_at : TIMESTAMP
+  - updated_at : TIMESTAMP
+}
+
+class AREA &lt;&lt;Table&gt;&gt; {
+  + PK area_id : VARCHAR(28)
+  # FK user_id : VARCHAR(28)
+  - name : VARCHAR(100)
+  - description : VARCHAR(255)
+  - created_at : TIMESTAMP
+  - updated_at : TIMESTAMP
+}
+
+class CRITERIA &lt;&lt;Table&gt;&gt; {
+  + PK criteria_key : VARCHAR(20)
+  - code : VARCHAR(4)
+  - name : VARCHAR(60)
+  - rank : INT
+}
+
+class ENERGY_DATA &lt;&lt;Table&gt;&gt; {
+  + PK data_id : VARCHAR(28)
+  # FK area_id : VARCHAR(28)
+  # FK created_by : VARCHAR(28)
+  - period_month : CHAR(7)
+  - energy : DECIMAL(12,2)
+  - energy_area_m2 : DECIMAL(10,2)
+  - cost : DECIMAL(15,2)
+  - duration : DECIMAL(6,2)
+  - maintenance : INT
+  - created_at : TIMESTAMP
+  - updated_at : TIMESTAMP
+}
+
+class AHP_RESULT &lt;&lt;Table&gt;&gt; {
+  + PK ahp_id : VARCHAR(15)
+  - period_month : CHAR(7)
+  - lambda_max : DECIMAL(8,5)
+  - ci : DECIMAL(8,5)
+  - cr : DECIMAL(8,5)
+  - is_consistent : BOOLEAN
+  - created_by : VARCHAR(100)
+  - created_at : TIMESTAMP
+}
+
+class AHP_RANKING &lt;&lt;Table&gt;&gt; {
+  + PK # FK ahp_id : VARCHAR(15)
+  + PK # FK area_id : VARCHAR(28)
+  - rank_position : INT
+  - score : DECIMAL(8,5)
+  - breakdown_energy : DECIMAL(8,5)
+  - breakdown_cost : DECIMAL(8,5)
+  - breakdown_duration : DECIMAL(8,5)
+  - breakdown_maintenance : DECIMAL(8,5)
+}
+
+class AHP_RESULT_CRITERIA &lt;&lt;Table&gt;&gt; {
+  + PK # FK ahp_id : VARCHAR(15)
+  + PK # FK criteria_key : VARCHAR(20)
+  - rank_used : INT
+  - weight : DECIMAL(8,5)
+}
+
+class NOTIFICATION &lt;&lt;Table&gt;&gt; {
+  + PK notification_id : VARCHAR(28)
+  # FK user_id : VARCHAR(28)
+  - type : VARCHAR(20)
+  - message : VARCHAR(255)
+  - link : VARCHAR(60)
+  - created_at : TIMESTAMP
+}
+
+USER --> AREA : user_id
+USER --> ENERGY_DATA : created_by
+AREA --> ENERGY_DATA : area_id
+USER --> NOTIFICATION : user_id
+AHP_RESULT --> AHP_RANKING : ahp_id
+AREA --> AHP_RANKING : area_id
+AHP_RESULT --> AHP_RESULT_CRITERIA : ahp_id
+CRITERIA --> AHP_RESULT_CRITERIA : criteria_key
+note bottom of AHP_RANKING : Tabel junction hasil\nM:N AHP_RESULT x AREA
+note bottom of AHP_RESULT_CRITERIA : Tabel junction hasil\nM:N AHP_RESULT x CRITERIA
+@enduml
+  </pre>
+
+  <h2><span class="no">03</span>Logical Record Structure (LRS) — Final</h2>
+  <p>Struktur logis final yang bersih, siap menjadi acuan implementasi tabel fisik.</p>
+  <pre class="plantuml">
+@startuml
+title LRS Final - Enerlyze Lippo Mall Puri
+hide methods
+
+class USER &lt;&lt;Table&gt;&gt; {
+  + PK user_id : VARCHAR(28)
+  name : VARCHAR(100)
+  email : VARCHAR(120)
+  password : VARCHAR(160)
+  role : VARCHAR(10)
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+class AREA &lt;&lt;Table&gt;&gt; {
+  + PK area_id : VARCHAR(28)
+  # FK user_id : VARCHAR(28)
+  name : VARCHAR(100)
+  description : VARCHAR(255)
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+class CRITERIA &lt;&lt;Table&gt;&gt; {
+  + PK criteria_key : VARCHAR(20)
+  code : VARCHAR(4)
+  name : VARCHAR(60)
+  rank : INT
+}
+
+class ENERGY_DATA &lt;&lt;Table&gt;&gt; {
+  + PK data_id : VARCHAR(28)
+  # FK area_id : VARCHAR(28)
+  # FK created_by : VARCHAR(28)
+  period_month : CHAR(7)
+  energy : DECIMAL(12,2)
+  energy_area_m2 : DECIMAL(10,2)
+  cost : DECIMAL(15,2)
+  duration : DECIMAL(6,2)
+  maintenance : INT
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+class AHP_RESULT &lt;&lt;Table&gt;&gt; {
+  + PK ahp_id : VARCHAR(15)
+  period_month : CHAR(7)
+  lambda_max : DECIMAL(8,5)
+  ci : DECIMAL(8,5)
+  cr : DECIMAL(8,5)
+  is_consistent : BOOLEAN
+  created_by : VARCHAR(100)
+  created_at : TIMESTAMP
+}
+
+class AHP_RANKING &lt;&lt;Table&gt;&gt; {
+  + PK # FK ahp_id : VARCHAR(15)
+  + PK # FK area_id : VARCHAR(28)
+  rank_position : INT
+  score : DECIMAL(8,5)
+  breakdown_energy : DECIMAL(8,5)
+  breakdown_cost : DECIMAL(8,5)
+  breakdown_duration : DECIMAL(8,5)
+  breakdown_maintenance : DECIMAL(8,5)
+}
+
+class AHP_RESULT_CRITERIA &lt;&lt;Table&gt;&gt; {
+  + PK # FK ahp_id : VARCHAR(15)
+  + PK # FK criteria_key : VARCHAR(20)
+  rank_used : INT
+  weight : DECIMAL(8,5)
+}
+
+class NOTIFICATION &lt;&lt;Table&gt;&gt; {
+  + PK notification_id : VARCHAR(28)
+  # FK user_id : VARCHAR(28)
+  type : VARCHAR(20)
+  message : VARCHAR(255)
+  link : VARCHAR(60)
+  created_at : TIMESTAMP
+}
+
+USER "1" --> "0..*" AREA
+USER "1" --> "0..*" ENERGY_DATA
+AREA "1" --> "0..*" ENERGY_DATA
+USER "1" --> "0..*" NOTIFICATION
+AHP_RESULT "1" --> "1..*" AHP_RANKING
+AREA "1" --> "0..*" AHP_RANKING
+AHP_RESULT "1" --> "4" AHP_RESULT_CRITERIA
+CRITERIA "1" --> "0..*" AHP_RESULT_CRITERIA
+@enduml
+  </pre>
+
+  <h2><span class="no">04</span>Spesifikasi Basis Data</h2>
+  <p>Spesifikasi rinci tiap tabel hasil LRS. Urutan field: PK, lalu FK, lalu atribut biasa.</p>
+
+  <div class="tbl-title">Tabel: USER</div>
+  <table>
+    <thead><tr><th>No</th><th>Nama Field</th><th>Tipe Data</th><th>Ukuran</th><th>PK</th><th>FK</th><th>Null</th><th>Default</th><th>Deskripsi</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>user_id</td><td>VARCHAR</td><td>28</td><td>✔</td><td>—</td><td>Not Null</td><td>—</td><td>Identitas unik pengguna.</td></tr>
+      <tr><td>2</td><td>name</td><td>VARCHAR</td><td>100</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Nama lengkap pengguna.</td></tr>
+      <tr><td>3</td><td>email</td><td>VARCHAR</td><td>120</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Email untuk login (unik).</td></tr>
+      <tr><td>4</td><td>password</td><td>VARCHAR</td><td>160</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Hash password format salt:hash.</td></tr>
+      <tr><td>5</td><td>role</td><td>VARCHAR</td><td>10</td><td>—</td><td>—</td><td>Not Null</td><td>'staff'</td><td>Peran akses: admin / staff.</td></tr>
+      <tr><td>6</td><td>created_at</td><td>TIMESTAMP</td><td>—</td><td>—</td><td>—</td><td>Not Null</td><td>now()</td><td>Waktu akun dibuat.</td></tr>
+      <tr><td>7</td><td>updated_at</td><td>TIMESTAMP</td><td>—</td><td>—</td><td>—</td><td>Not Null</td><td>now()</td><td>Waktu pembaruan terakhir.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="tbl-title">Tabel: AREA</div>
+  <table>
+    <thead><tr><th>No</th><th>Nama Field</th><th>Tipe Data</th><th>Ukuran</th><th>PK</th><th>FK</th><th>Null</th><th>Default</th><th>Deskripsi</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>area_id</td><td>VARCHAR</td><td>28</td><td>✔</td><td>—</td><td>Not Null</td><td>—</td><td>Identitas unik area gedung.</td></tr>
+      <tr><td>2</td><td>user_id</td><td>VARCHAR</td><td>28</td><td>—</td><td>USER.user_id</td><td>Not Null</td><td>—</td><td>User penanggung jawab area.</td></tr>
+      <tr><td>3</td><td>name</td><td>VARCHAR</td><td>100</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Nama area, mis. "Lantai 1".</td></tr>
+      <tr><td>4</td><td>description</td><td>VARCHAR</td><td>255</td><td>—</td><td>—</td><td>Null</td><td>''</td><td>Keterangan detail isi area.</td></tr>
+      <tr><td>5</td><td>created_at</td><td>TIMESTAMP</td><td>—</td><td>—</td><td>—</td><td>Not Null</td><td>now()</td><td>Waktu area dibuat.</td></tr>
+      <tr><td>6</td><td>updated_at</td><td>TIMESTAMP</td><td>—</td><td>—</td><td>—</td><td>Not Null</td><td>now()</td><td>Waktu pembaruan terakhir.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="tbl-title">Tabel: CRITERIA</div>
+  <table>
+    <thead><tr><th>No</th><th>Nama Field</th><th>Tipe Data</th><th>Ukuran</th><th>PK</th><th>FK</th><th>Null</th><th>Default</th><th>Deskripsi</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>criteria_key</td><td>VARCHAR</td><td>20</td><td>✔</td><td>—</td><td>Not Null</td><td>—</td><td>Kunci kriteria (energy/cost/duration/maintenance).</td></tr>
+      <tr><td>2</td><td>code</td><td>VARCHAR</td><td>4</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Kode singkat: KE / BL / DO / FM.</td></tr>
+      <tr><td>3</td><td>name</td><td>VARCHAR</td><td>60</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Nama lengkap kriteria penilaian.</td></tr>
+      <tr><td>4</td><td>rank</td><td>INT</td><td>—</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Peringkat prioritas kriteria (1–4, unik).</td></tr>
+    </tbody>
+  </table>
+
+  <div class="tbl-title">Tabel: ENERGY_DATA</div>
+  <table>
+    <thead><tr><th>No</th><th>Nama Field</th><th>Tipe Data</th><th>Ukuran</th><th>PK</th><th>FK</th><th>Null</th><th>Default</th><th>Deskripsi</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>data_id</td><td>VARCHAR</td><td>28</td><td>✔</td><td>—</td><td>Not Null</td><td>—</td><td>Identitas unik catatan energi.</td></tr>
+      <tr><td>2</td><td>area_id</td><td>VARCHAR</td><td>28</td><td>—</td><td>AREA.area_id</td><td>Not Null</td><td>—</td><td>Area pemilik catatan energi.</td></tr>
+      <tr><td>3</td><td>created_by</td><td>VARCHAR</td><td>28</td><td>—</td><td>USER.user_id</td><td>Null</td><td>NULL</td><td>User penginput data.</td></tr>
+      <tr><td>4</td><td>period_month</td><td>CHAR</td><td>7</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Periode data (YYYY-MM).</td></tr>
+      <tr><td>5</td><td>energy</td><td>DECIMAL</td><td>12,2</td><td>—</td><td>—</td><td>Not Null</td><td>0</td><td>Konsumsi energi listrik (kWh).</td></tr>
+      <tr><td>6</td><td>energy_area_m2</td><td>DECIMAL</td><td>10,2</td><td>—</td><td>—</td><td>Null</td><td>0</td><td>Luas area (m²) sebagai konteks.</td></tr>
+      <tr><td>7</td><td>cost</td><td>DECIMAL</td><td>15,2</td><td>—</td><td>—</td><td>Not Null</td><td>0</td><td>Biaya listrik (Rupiah).</td></tr>
+      <tr><td>8</td><td>duration</td><td>DECIMAL</td><td>6,2</td><td>—</td><td>—</td><td>Not Null</td><td>0</td><td>Durasi operasional (jam).</td></tr>
+      <tr><td>9</td><td>maintenance</td><td>INT</td><td>—</td><td>—</td><td>—</td><td>Not Null</td><td>0</td><td>Frekuensi maintenance (x/bulan).</td></tr>
+      <tr><td>10</td><td>created_at</td><td>TIMESTAMP</td><td>—</td><td>—</td><td>—</td><td>Not Null</td><td>now()</td><td>Waktu input data.</td></tr>
+      <tr><td>11</td><td>updated_at</td><td>TIMESTAMP</td><td>—</td><td>—</td><td>—</td><td>Not Null</td><td>now()</td><td>Waktu pembaruan data.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="tbl-title">Tabel: AHP_RESULT</div>
+  <table>
+    <thead><tr><th>No</th><th>Nama Field</th><th>Tipe Data</th><th>Ukuran</th><th>PK</th><th>FK</th><th>Null</th><th>Default</th><th>Deskripsi</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>ahp_id</td><td>VARCHAR</td><td>15</td><td>✔</td><td>—</td><td>Not Null</td><td>—</td><td>Kode hasil AHP, mis. "AHP-2026-04".</td></tr>
+      <tr><td>2</td><td>period_month</td><td>CHAR</td><td>7</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Periode analisis (YYYY-MM, unik).</td></tr>
+      <tr><td>3</td><td>lambda_max</td><td>DECIMAL</td><td>8,5</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Nilai λmax matriks pairwise kriteria.</td></tr>
+      <tr><td>4</td><td>ci</td><td>DECIMAL</td><td>8,5</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Consistency Index.</td></tr>
+      <tr><td>5</td><td>cr</td><td>DECIMAL</td><td>8,5</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Consistency Ratio (valid bila &lt; 0,1).</td></tr>
+      <tr><td>6</td><td>is_consistent</td><td>BOOLEAN</td><td>—</td><td>—</td><td>—</td><td>Not Null</td><td>true</td><td>Status konsistensi hasil AHP.</td></tr>
+      <tr><td>7</td><td>created_by</td><td>VARCHAR</td><td>100</td><td>—</td><td>—</td><td>Not Null</td><td>'Admin'</td><td>Nama admin penyusun analisis.</td></tr>
+      <tr><td>8</td><td>created_at</td><td>TIMESTAMP</td><td>—</td><td>—</td><td>—</td><td>Not Null</td><td>now()</td><td>Waktu analisis dijalankan.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="tbl-title">Tabel: AHP_RANKING (junction AHP_RESULT × AREA)</div>
+  <table>
+    <thead><tr><th>No</th><th>Nama Field</th><th>Tipe Data</th><th>Ukuran</th><th>PK</th><th>FK</th><th>Null</th><th>Default</th><th>Deskripsi</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>ahp_id</td><td>VARCHAR</td><td>15</td><td>✔</td><td>AHP_RESULT.ahp_id</td><td>Not Null</td><td>—</td><td>Hasil AHP pemilik baris ranking.</td></tr>
+      <tr><td>2</td><td>area_id</td><td>VARCHAR</td><td>28</td><td>✔</td><td>AREA.area_id</td><td>Not Null</td><td>—</td><td>Area yang diperingkat.</td></tr>
+      <tr><td>3</td><td>rank_position</td><td>INT</td><td>—</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Posisi peringkat prioritas (1 = teratas).</td></tr>
+      <tr><td>4</td><td>score</td><td>DECIMAL</td><td>8,5</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Skor agregat prioritas area.</td></tr>
+      <tr><td>5</td><td>breakdown_energy</td><td>DECIMAL</td><td>8,5</td><td>—</td><td>—</td><td>Not Null</td><td>0</td><td>Kontribusi kriteria Energi pada skor.</td></tr>
+      <tr><td>6</td><td>breakdown_cost</td><td>DECIMAL</td><td>8,5</td><td>—</td><td>—</td><td>Not Null</td><td>0</td><td>Kontribusi kriteria Biaya pada skor.</td></tr>
+      <tr><td>7</td><td>breakdown_duration</td><td>DECIMAL</td><td>8,5</td><td>—</td><td>—</td><td>Not Null</td><td>0</td><td>Kontribusi kriteria Durasi pada skor.</td></tr>
+      <tr><td>8</td><td>breakdown_maintenance</td><td>DECIMAL</td><td>8,5</td><td>—</td><td>—</td><td>Not Null</td><td>0</td><td>Kontribusi kriteria Maintenance pada skor.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="tbl-title">Tabel: AHP_RESULT_CRITERIA (junction AHP_RESULT × CRITERIA)</div>
+  <table>
+    <thead><tr><th>No</th><th>Nama Field</th><th>Tipe Data</th><th>Ukuran</th><th>PK</th><th>FK</th><th>Null</th><th>Default</th><th>Deskripsi</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>ahp_id</td><td>VARCHAR</td><td>15</td><td>✔</td><td>AHP_RESULT.ahp_id</td><td>Not Null</td><td>—</td><td>Hasil AHP pemilik bobot.</td></tr>
+      <tr><td>2</td><td>criteria_key</td><td>VARCHAR</td><td>20</td><td>✔</td><td>CRITERIA.criteria_key</td><td>Not Null</td><td>—</td><td>Kriteria yang ditimbang.</td></tr>
+      <tr><td>3</td><td>rank_used</td><td>INT</td><td>—</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Rank kriteria saat analisis dijalankan.</td></tr>
+      <tr><td>4</td><td>weight</td><td>DECIMAL</td><td>8,5</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Bobot prioritas kriteria hasil eigenvector.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="tbl-title">Tabel: NOTIFICATION</div>
+  <table>
+    <thead><tr><th>No</th><th>Nama Field</th><th>Tipe Data</th><th>Ukuran</th><th>PK</th><th>FK</th><th>Null</th><th>Default</th><th>Deskripsi</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>notification_id</td><td>VARCHAR</td><td>28</td><td>✔</td><td>—</td><td>Not Null</td><td>—</td><td>Identitas unik notifikasi.</td></tr>
+      <tr><td>2</td><td>user_id</td><td>VARCHAR</td><td>28</td><td>—</td><td>USER.user_id</td><td>Not Null</td><td>—</td><td>User penerima notifikasi.</td></tr>
+      <tr><td>3</td><td>type</td><td>VARCHAR</td><td>20</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Jenis: missing-data / ahp-pending.</td></tr>
+      <tr><td>4</td><td>message</td><td>VARCHAR</td><td>255</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Isi pesan notifikasi.</td></tr>
+      <tr><td>5</td><td>link</td><td>VARCHAR</td><td>60</td><td>—</td><td>—</td><td>Not Null</td><td>—</td><td>Rute tujuan saat notifikasi diklik.</td></tr>
+      <tr><td>6</td><td>created_at</td><td>TIMESTAMP</td><td>—</td><td>—</td><td>—</td><td>Not Null</td><td>now()</td><td>Waktu notifikasi dibuat.</td></tr>
+    </tbody>
+  </table>
+
+</div>
+</body>
+</html>

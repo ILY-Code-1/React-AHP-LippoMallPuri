@@ -1,0 +1,96 @@
+@startuml
+title Class Diagram (Conceptual Domain Model) - Enerlyze Lippo Mall Puri
+skinparam classAttributeIconSize 0
+
+class User {
+  - id : String
+  - name : String
+  - email : String
+  - password : String
+  - role : String
+  - created_at : DateTime
+  - updated_at : DateTime
+  --
+  + authenticate(plainPassword) : Boolean
+  + isAdmin() : Boolean
+}
+
+class Area {
+  - id : String
+  - name : String
+  - description : String
+  - created_at : DateTime
+  - updated_at : DateTime
+}
+
+class Criteria {
+  - key : String
+  - code : String
+  - name : String
+  - rank : Integer
+  - higherIsWorse : Boolean
+  --
+  + saatyIntensity(other : Criteria) : Number
+}
+
+class EnergyData {
+  - id : String
+  - month : String
+  - energy : Number
+  - energy_area_m2 : Number
+  - cost : Number
+  - duration : Number
+  - maintenance : Number
+  - created_at : DateTime
+  - updated_at : DateTime
+  --
+  + priorityValue(criterion : Criteria) : Number
+}
+
+class AhpResult {
+  - month : String
+  - ahp_id : String
+  - lambdaMax : Number
+  - ci : Number
+  - cr : Number
+  - created_by : String
+  - created_at : DateTime
+  --
+  + isConsistent() : Boolean
+  + topPriority() : AhpRanking
+}
+
+class AhpResultCriteria {
+  - rank : Integer
+  - weight : Number
+}
+
+class AhpRanking {
+  - rank : Integer
+  - score : Number
+  - breakdown : Map
+  - area_name : String
+  --
+  + recommendation() : ActionList
+}
+
+class Notification {
+  - id : String
+  - type : String
+  - message : String
+  - link : String
+  - created_at : DateTime
+}
+
+User "1" --> "0..*" Area : bertanggung jawab >
+User "1" --> "0..*" EnergyData : menginput >
+User "1" --> "0..*" Notification : menerima >
+Area "1" --> "0..*" EnergyData : memiliki >
+
+AhpResult "1" *-- "1..*" AhpRanking : ranking
+AhpResult "1" *-- "4" AhpResultCriteria : bobot kriteria
+Criteria "1" --> "0..*" AhpResultCriteria : dinilai pada >
+Area "1" --> "0..*" AhpRanking : diperingkat pada >
+EnergyData "1..*" --o "1" AhpResult : sumber perhitungan
+
+@enduml

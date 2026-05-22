@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, CheckCheck, AlertCircle, CalendarClock } from 'lucide-react'
 import useAuthStore from '../../stores/authStore'
+import useNotificationStore from '../../stores/notificationStore'
 import {
   getNotifications, deleteNotification, clearNotifications,
 } from '../../services/notificationService'
@@ -14,23 +15,39 @@ const typeIcon = {
 /** Header bell: lists the user's AHP-data notifications generated at login. */
 const NotificationBell = () => {
   const user = useAuthStore((s) => s.user)
+  const refreshKey = useNotificationStore((s) => s.refreshKey)
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
   const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(false)
   const ref = useRef(null)
 
   const load = useCallback(async () => {
     if (!user) return
+    setLoading(true)
     try {
       setItems(await getNotifications(user.id))
     } catch {
       setItems([])
+    } finally {
+      setLoading(false)
     }
   }, [user])
 
+  // Reload on mount and whenever login-time generation signals completion.
   useEffect(() => {
     load()
-  }, [load])
+  }, [load, refreshKey])
+
+  // Re-fetch on open: notifications are generated asynchronously at login,
+  // so the initial mount fetch can race ahead of the freshly-written docs.
+  const toggleOpen = () => {
+    setOpen((p) => {
+      const next = !p
+      if (next) load()
+      return next
+    })
+  }
 
   useEffect(() => {
     const handler = (e) => {
@@ -59,7 +76,7 @@ const NotificationBell = () => {
     <div ref={ref} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((p) => !p)}
+        onClick={toggleOpen}
         className="relative w-10 h-10 flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/6 transition-colors cursor-pointer"
         aria-label="Notifikasi"
       >
@@ -90,7 +107,11 @@ const NotificationBell = () => {
           </div>
 
           <div className="max-h-96 overflow-y-auto">
-            {count === 0 ? (
+            {loading && count === 0 ? (
+              <div className="py-10 flex flex-col items-center gap-2">
+                <p className="text-white/35 text-xs">Memuat notifikasi...</p>
+              </div>
+            ) : count === 0 ? (
               <div className="py-10 flex flex-col items-center gap-2">
                 <Bell size={20} className="text-white/20" />
                 <p className="text-white/35 text-xs">Tidak ada notifikasi</p>
