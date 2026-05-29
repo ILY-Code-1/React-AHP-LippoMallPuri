@@ -8,6 +8,7 @@ import { getAhpResult, deleteAhpResult, ahpIdOf } from '../../services/ahpServic
 import { getAreas } from '../../services/areaService'
 import { getDataByMonth } from '../../services/dataService'
 import { buildRecommendation } from '../../lib/recommendations'
+import { deserializeMatrix } from '../../lib/ahp'
 import {
   formatMonthKey, formatMonthRange, formatTimestamp, daysInMonthKey,
   formatNumber, formatRupiah,
@@ -81,22 +82,23 @@ const DetailReportPage = () => {
         scale: 2,
         backgroundColor: '#ffffff',
         useCORS: true,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        windowWidth: reportRef.current.scrollWidth,
       })
-      const pdf = new jsPDF('p', 'mm', 'a4')
-      const pageW = pdf.internal.pageSize.getWidth()
-      const pageH = pdf.internal.pageSize.getHeight()
-      const imgH = (canvas.height * pageW) / canvas.width
-      let heightLeft = imgH
-      let position = 0
       const imgData = canvas.toDataURL('image/png')
-      pdf.addImage(imgData, 'PNG', 0, position, pageW, imgH)
-      heightLeft -= pageH
-      while (heightLeft > 0) {
-        position -= pageH
-        pdf.addPage()
-        pdf.addImage(imgData, 'PNG', 0, position, pageW, imgH)
-        heightLeft -= pageH
-      }
+      // Single page sized to the full content height (A4 width, proportional
+      // height) so no card/section is ever split across a page break.
+      const pageW = 210 // A4 width in mm
+      const margin = 8
+      const contentW = pageW - margin * 2
+      const contentH = (canvas.height * contentW) / canvas.width
+      const pdf = new jsPDF({
+        orientation: 'p',
+        unit: 'mm',
+        format: [pageW, contentH + margin * 2],
+      })
+      pdf.addImage(imgData, 'PNG', margin, margin, contentW, contentH, undefined, 'FAST')
       pdf.save(`Laporan-AHP-${month}.pdf`)
     } catch {
       toast.error('Gagal membuat PDF.')
@@ -181,6 +183,8 @@ const FullReport = ({ ahp, month }) => {
   const maxScore = Math.max(...ranking.map((r) => r.score), 0.0001)
   const cr = ahp.consistency?.cr ?? 0
   const crOk = cr < 0.1
+  // Firestore-safe matrix is stored as { rows: [{ cells: [...] }] }.
+  const matrix = deserializeMatrix(ahp.criteria_matrix)
 
   return (
     <>
@@ -254,7 +258,7 @@ const FullReport = ({ ahp, month }) => {
                   <th style={S.matrixHead}>{rowC.code}</th>
                   {ahp.criteria.map((_, j) => (
                     <td key={j} style={{ ...S.matrixCell, ...(i === j ? S.matrixDiag : {}) }}>
-                      {saatyLabel(ahp.criteria_matrix[i][j])}
+                      {saatyLabel(matrix[i][j])}
                     </td>
                   ))}
                 </tr>

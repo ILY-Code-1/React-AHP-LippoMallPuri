@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { Building2, Zap, DollarSign, Gauge, CalendarRange } from 'lucide-react'
+import { Building2, Zap, DollarSign, Gauge, CalendarRange, X } from 'lucide-react'
 import PageHeader from '../ui/PageHeader'
 import Spinner from '../ui/Spinner'
 import Dropdown from '../ui/Dropdown'
@@ -10,7 +10,8 @@ import { getAreas } from '../../services/areaService'
 import { getDataByMonths } from '../../services/dataService'
 import { getAllAhpResults } from '../../services/ahpService'
 import {
-  toMonthKey, monthKeyRange, formatMonthShort, formatRupiahCompact, formatNumber,
+  prevMonthKey, monthKeyRange, formatMonthShort, formatMonthKey,
+  formatRupiah, formatRupiahCompact, formatNumber,
 } from '../../lib/format'
 import { toast } from '../../stores/toastStore'
 
@@ -22,6 +23,47 @@ const RANGE_OPTIONS = [3, 6, 9, 12, 15, 18, 20].map((n) => ({
   label: `${n} bulan terakhir`,
 }))
 
+const CRIT_LABEL = { energy: 'Energi', cost: 'Biaya', duration: 'Durasi', maintenance: 'Maintenance' }
+
+/* Recharts passes click args with differing shapes; dig out the month key. */
+const pickMonthKey = (...args) => {
+  for (const a of args) {
+    if (a?.payload?._key) return a.payload._key
+    if (a?._key) return a._key
+  }
+  return null
+}
+
+/* Hover tooltip: one row per area (bar + line share a dataKey → dedupe). */
+const ChartTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null
+  const seen = new Set()
+  const rows = payload
+    .filter((p) => p.value != null && !seen.has(p.dataKey) && seen.add(p.dataKey))
+    .sort((a, b) => b.value - a.value)
+  if (!rows.length) return null
+  return (
+    <div style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, padding: '10px 12px', minWidth: 168 }}>
+      <div style={{ color: '#fff', fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{label}</div>
+      {rows.map((r) => (
+        <div key={r.dataKey} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, marginTop: 3 }}>
+          <span style={{ width: 9, height: 9, borderRadius: 2, background: r.color, flexShrink: 0 }} />
+          <span style={{ color: 'rgba(255,255,255,0.7)', flex: 1 }}>{r.dataKey}</span>
+          <span style={{ color: '#fff', fontFamily: 'monospace', fontWeight: 600 }}>{r.value.toFixed(3)}</span>
+        </div>
+      ))}
+      <div style={{ color: 'rgba(255,255,255,0.35)', fontSize: 10, marginTop: 8 }}>Klik bar / titik untuk detail</div>
+    </div>
+  )
+}
+
+const Stat = ({ label, value }) => (
+  <div className="bg-white/5 rounded-lg px-3 py-2.5">
+    <p className="text-white/40 text-[10px] font-medium">{label}</p>
+    <p className="text-white text-[13px] font-semibold mt-0.5">{value}</p>
+  </div>
+)
+
 const DashboardView = ({ subtitle }) => {
   const [range, setRange] = useState('3')
   const [areas, setAreas] = useState([])
@@ -29,8 +71,10 @@ const DashboardView = ({ subtitle }) => {
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeArea, setActiveArea] = useState(null) // highlighted area name
+  const [selected, setSelected] = useState(null) // pinned point: { areaId, areaName, monthKey }
 
-  const months = useMemo(() => monthKeyRange(toMonthKey(), Number(range)), [range])
+  // Range starts from the previous completed month (current month excluded).
+  const months = useMemo(() => monthKeyRange(prevMonthKey(), Number(range)), [range])
 
   useEffect(() => {
     let cancelled = false
@@ -74,7 +118,7 @@ const DashboardView = ({ subtitle }) => {
     const byMonth = {}
     results.forEach((r) => (byMonth[r.month] = r))
     return months.map((m) => {
-      const row = { month: formatMonthShort(m) }
+      const row = { month: formatMonthShort(m), _key: m }
       const ranking = byMonth[m]?.ranking || []
       areas.forEach((a) => {
         const found = ranking.find((x) => x.area_id === a.id)
@@ -83,6 +127,32 @@ const DashboardView = ({ subtitle }) => {
       return row
     })
   }, [months, results, areas])
+
+  // Lookups for the pinned-point detail panel.
+  const dataIndex = useMemo(() => {
+    const map = {}
+    data.forEach((d) => (map[`${d.area_id}__${d.month}`] = d))
+    return map
+  }, [data])
+
+  const ahpByMonth = useMemo(() => {
+    const map = {}
+    results.forEach((r) => (map[r.month] = r))
+    return map
+  }, [results])
+
+  const detail = useMemo(() => {
+    if (!selected) return null
+    const rec = dataIndex[`${selected.areaId}__${selected.monthKey}`] || null
+    const ahpRow =
+      ahpByMonth[selected.monthKey]?.ranking?.find((x) => x.area_id === selected.areaId) || null
+    return { rec, ahpRow }
+  }, [selected, dataIndex, ahpByMonth])
+
+  const selectPoint = (areaId, areaName) => (...args) => {
+    const monthKey = pickMonthKey(...args)
+    if (monthKey) setSelected({ areaId, areaName, monthKey })
+  }
 
   const colorFor = (idx) => SHADES[idx % SHADES.length]
 
@@ -159,13 +229,7 @@ const DashboardView = ({ subtitle }) => {
                   tickLine={false}
                 />
                 <Tooltip
-                  contentStyle={{
-                    background: '#0a0a0a',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: 10,
-                    color: '#fff',
-                    fontSize: 12,
-                  }}
+                  content={<ChartTooltip />}
                   cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                 />
                 {areas.map((a, i) => {
@@ -178,6 +242,8 @@ const DashboardView = ({ subtitle }) => {
                       fillOpacity={dim ? 0.15 : 0.9}
                       radius={[3, 3, 0, 0]}
                       maxBarSize={26}
+                      cursor="pointer"
+                      onClick={selectPoint(a.id, a.name)}
                     />
                   )
                 })}
@@ -192,6 +258,7 @@ const DashboardView = ({ subtitle }) => {
                       strokeWidth={activeArea === a.name ? 2.5 : 1.5}
                       strokeOpacity={dim ? 0.12 : 1}
                       dot={{ r: 2.5, fill: colorFor(i) }}
+                      activeDot={{ r: 5, cursor: 'pointer', onClick: selectPoint(a.id, a.name) }}
                       connectNulls
                       legendType="none"
                     />
@@ -235,6 +302,73 @@ const DashboardView = ({ subtitle }) => {
                 </button>
               )}
             </div>
+
+            {/* Pinned point detail — appears when a bar/point is clicked */}
+            {detail && (
+              <div className="mt-6 bg-[#161616] border border-white/10 rounded-xl p-5">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-white font-semibold text-sm">{selected.areaName}</p>
+                    <p className="text-white/40 text-xs mt-0.5">{formatMonthKey(selected.monthKey)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelected(null)}
+                    aria-label="Tutup detail"
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-white/40 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+
+                {detail.ahpRow ? (
+                  <div className="flex items-center gap-8 mt-4">
+                    <div>
+                      <p className="text-white/40 text-[11px]">Skor AHP</p>
+                      <p className="text-white text-lg font-semibold font-mono">{detail.ahpRow.score.toFixed(3)}</p>
+                    </div>
+                    <div>
+                      <p className="text-white/40 text-[11px]">Peringkat Prioritas</p>
+                      <p className="text-white text-lg font-semibold">#{detail.ahpRow.rank}</p>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-white/35 text-xs mt-4">AHP belum dijalankan untuk bulan ini.</p>
+                )}
+
+                {detail.rec ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                    <Stat label="Konsumsi" value={`${formatNumber(detail.rec.energy)} kWh`} />
+                    <Stat label="Biaya Listrik" value={formatRupiah(detail.rec.cost)} />
+                    <Stat label="Durasi" value={`${formatNumber(detail.rec.duration)} jam`} />
+                    <Stat label="Maintenance" value={`${formatNumber(detail.rec.maintenance)}x`} />
+                  </div>
+                ) : (
+                  <p className="text-white/35 text-xs mt-3">Tidak ada data input energi untuk titik ini.</p>
+                )}
+
+                {detail.ahpRow?.breakdown && (
+                  <div className="mt-5">
+                    <p className="text-white/40 text-[11px] mb-2">Kontribusi per kriteria terhadap skor</p>
+                    <div className="flex flex-col gap-2">
+                      {Object.keys(CRIT_LABEL).map((k) => {
+                        const v = detail.ahpRow.breakdown[k] || 0
+                        const pct = detail.ahpRow.score ? (v / detail.ahpRow.score) * 100 : 0
+                        return (
+                          <div key={k} className="flex items-center gap-3 text-xs">
+                            <span className="text-white/55 w-20 shrink-0">{CRIT_LABEL[k]}</span>
+                            <div className="flex-1 h-1.5 rounded-full bg-white/8 overflow-hidden">
+                              <div className="h-full bg-white/55 rounded-full" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-white/60 font-mono w-14 text-right">{v.toFixed(3)}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>

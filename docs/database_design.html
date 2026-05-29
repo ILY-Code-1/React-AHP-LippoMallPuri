@@ -83,6 +83,14 @@
     <code>ranking</code> yang sudah memuat <code>area_name</code> "Lantai 1" hasil snapshot —
     tanpa perlu join ke <code>areas_enerlyze</code>.
   </p>
+  <p>
+    <strong>Catatan teknis (nested array):</strong> Firestore <em>tidak mendukung</em> nested array
+    (array of arrays). Matriks pairwise kriteria 4×4 karena itu tidak disimpan sebagai
+    <code>number[][]</code>, melainkan diserialisasi ke bentuk <em>map-of-rows</em>
+    <code>{ rows: [{ cells: [...] }] }</code> (helper <code>serializeMatrix()</code> pada
+    <code>src/lib/ahp.js</code>), lalu dideserialisasi kembali ke matriks 2D dengan
+    <code>deserializeMatrix()</code> saat ditampilkan di halaman Laporan Detail AHP.
+  </p>
 
   <h2><span class="no">02</span>Struktur Koleksi</h2>
   <p>Enam koleksi root pada Firestore. Setiap koleksi diberi sufiks <code>_enerlyze</code> sesuai konvensi proyek.</p>
@@ -137,7 +145,7 @@
       <ul>
         <li><span class="field">month</span> <span class="type">string</span> · <span class="field">ahp_id</span> <span class="type">string</span> — mis. "AHP-2026-04"</li>
         <li><span class="field">criteria</span> <span class="type">array&lt;map&gt;</span> — <em>embedded</em>: {key, code, name, rank, weight}</li>
-        <li><span class="field">criteria_matrix</span> <span class="type">array&lt;array&lt;number&gt;&gt;</span> — matriks pairwise 4×4</li>
+        <li><span class="field">criteria_matrix</span> <span class="type">map</span> — matriks pairwise 4×4 bentuk <code>{ rows: [{ cells: [...] }] }</code> (Firestore-safe, bukan nested array)</li>
         <li><span class="field">criteria_weights</span> <span class="type">array&lt;number&gt;</span></li>
         <li><span class="field">consistency</span> <span class="type">map</span> — {lambdaMax, ci, cr, isConsistent}</li>
         <li><span class="field">ranking</span> <span class="type">array&lt;map&gt;</span> — <em>embedded</em>: {area_id, area_name, area_description, score, breakdown, rank}</li>
@@ -273,7 +281,7 @@ ahp ..> crit : memakai bobot kriteria
       <tr><td>26</td><td>month</td><td>string</td><td>ahp_results_enerlyze</td><td>Periode hasil AHP (= document ID).</td><td>required, unique (doc ID)</td></tr>
       <tr><td>27</td><td>ahp_id</td><td>string</td><td>ahp_results_enerlyze</td><td>Kode hasil, mis. "AHP-2026-04".</td><td>required</td></tr>
       <tr><td>28</td><td>criteria</td><td>array&lt;map&gt;</td><td>ahp_results_enerlyze</td><td>Embedded — daftar kriteria + bobot saat analisis.</td><td>embedded snapshot</td></tr>
-      <tr><td>29</td><td>criteria_matrix</td><td>array&lt;array&lt;number&gt;&gt;</td><td>ahp_results_enerlyze</td><td>Matriks pairwise Saaty 4×4 antar kriteria.</td><td>embedded</td></tr>
+      <tr><td>29</td><td>criteria_matrix</td><td>map</td><td>ahp_results_enerlyze</td><td>Matriks pairwise Saaty 4×4 antar kriteria, disimpan sebagai <code>{ rows: [{ cells: [...] }] }</code>.</td><td>embedded (rows/cells — Firestore tak mendukung nested array)</td></tr>
       <tr><td>30</td><td>criteria_weights</td><td>array&lt;number&gt;</td><td>ahp_results_enerlyze</td><td>Vektor bobot prioritas kriteria.</td><td>embedded</td></tr>
       <tr><td>31</td><td>consistency</td><td>map</td><td>ahp_results_enerlyze</td><td>Metrik konsistensi: lambdaMax, ci, cr, isConsistent.</td><td>embedded</td></tr>
       <tr><td>32</td><td>ranking</td><td>array&lt;map&gt;</td><td>ahp_results_enerlyze</td><td>Embedded — skor &amp; peringkat prioritas tiap area.</td><td>embedded snapshot</td></tr>

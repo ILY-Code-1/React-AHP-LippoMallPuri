@@ -3,7 +3,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../config/firebase'
 import { COLLECTIONS } from '../constants/collections'
-import { runAHP } from '../lib/ahp'
+import { runAHP, serializeMatrix } from '../lib/ahp'
 import { getCriteria } from './criteriaService'
 import { getAreas } from './areaService'
 import { getDataByMonth } from './dataService'
@@ -56,7 +56,7 @@ export const runAndSaveAHP = async (month, createdBy) => {
     month,
     ahp_id: ahpIdOf(month),
     criteria: result.criteria,
-    criteria_matrix: result.criteriaMatrix,
+    criteria_matrix: serializeMatrix(result.criteriaMatrix),
     criteria_weights: result.criteriaWeights,
     consistency: result.consistency,
     ranking: result.ranking,

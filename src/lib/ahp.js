@@ -23,6 +23,23 @@ export const saatyFromRankDiff = (diff) => {
   return Math.min(9, value)
 }
 
+/**
+ * Firestore does not support nested arrays (array of arrays). A 2D matrix is
+ * serialized into a map-of-rows shape before persisting, and restored on read.
+ *   [[1, 0.5], [2, 1]]  <->  { rows: [{ cells: [1, 0.5] }, { cells: [2, 1] }] }
+ */
+export const serializeMatrix = (matrix2D = []) => ({
+  rows: (matrix2D || []).map((row) => ({ cells: [...row] })),
+})
+
+/** Restore a 2D matrix from the stored shape (tolerates legacy raw 2D arrays). */
+export const deserializeMatrix = (stored) => {
+  if (!stored) return []
+  if (Array.isArray(stored)) return stored // legacy: persisted as a raw 2D array
+  if (Array.isArray(stored.rows)) return stored.rows.map((r) => r?.cells ?? [])
+  return []
+}
+
 /** Build the n×n criteria pairwise matrix from criteria ranks. */
 export const buildCriteriaMatrix = (criteria) => {
   const n = criteria.length

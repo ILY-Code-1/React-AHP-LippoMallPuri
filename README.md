@@ -60,7 +60,7 @@ Detail lengkap ada di **[SETUP.md](./SETUP.md)**.
 
 | Menu                | Kemampuan                                                                 |
 | ------------------- | ------------------------------------------------------------------------- |
-| Dashboard           | KPI cards + grafik skor AHP per area antar bulan (filter 3–20 bulan).     |
+| Dashboard           | KPI cards + grafik skor AHP per area antar bulan (filter 3–20 bulan, mulai dari **bulan sebelumnya**). **Klik bar/titik** → panel detail skor, ranking & data input area tsb. |
 | Data                | Lihat data semua area per bulan, **Run / Re-run AHP**, **View Detail**.    |
 | Master ▸ AHP        | Lihat 4 kriteria (fixed), **edit rank** kriteria (1–4, unik).             |
 | Master ▸ Area       | CRUD area + assign user penanggung jawab. Delete dicek pemakaian data.     |
@@ -96,7 +96,9 @@ Tahapan yang diimplementasikan (`src/lib/ahp.js`):
    - Frekuensi Maintenance → **dibalik**: frekuensi lebih rendah = area kurang
      terawat = prioritas optimasi lebih tinggi.
 5. **Skor akhir area** = Σ (bobot kriteria × local priority area pada kriteria itu).
-6. Hasil disimpan ke `ahp_results_enerlyze`.
+6. Hasil disimpan ke `ahp_results_enerlyze`. Pairwise matrix diserialisasi ke bentuk
+   `{ rows: [{ cells: [...] }] }` lewat `serializeMatrix()` karena Firestore **tidak
+   mendukung nested array** (array of arrays); dibaca kembali via `deserializeMatrix()`.
 
 Kriteria (tetap, hanya rank yang bisa diubah):
 
@@ -158,8 +160,8 @@ Semua koleksi berakhiran **`_enerlyze`**.
 | month            | string    | `YYYY-MM`                               |
 | ahp_id           | string    | `AHP-YYYY-MM`                           |
 | criteria         | array     | `{key, code, name, rank, weight}`       |
-| criteria_matrix  | array[][] | Pairwise matrix kriteria                |
-| criteria_weights | array     | Bobot kriteria                          |
+| criteria_matrix  | map       | Pairwise matrix kriteria — bentuk `{ rows: [{ cells: [...] }] }` (Firestore-safe, bukan nested array) |
+| criteria_weights | array     | Bobot kriteria (array 1D)               |
 | consistency      | map       | `{lambdaMax, ci, cr, isConsistent}`     |
 | ranking          | array     | `{area_id, area_name, score, breakdown, rank}` |
 | created_by       | string    | Penyusun                                |
@@ -184,6 +186,8 @@ Semua koleksi berakhiran **`_enerlyze`**.
 - **Admin** → notif bila semua area sudah mengisi data tapi AHP belum dijalankan.
 - Klik 1 notif → notif terhapus + navigasi ke halaman terkait.
 - "Tandai sudah dibaca semua" → hapus semua notifikasi user.
+- Muncul otomatis di ikon lonceng **segera setelah login** (tanpa reload) dan
+  di-fetch ulang tiap dropdown dibuka — disinkronkan lewat `stores/notificationStore.js`.
 
 ---
 
@@ -197,6 +201,16 @@ npm run preview  # preview hasil build
 ```
 
 Sebelum run, pastikan `.env` sudah berisi `SECRET`. Lihat **[SETUP.md](./SETUP.md)**.
+
+### Seed & utilitas data
+
+Semua script membaca `SECRET` dari `.env` dan menulis langsung ke Firestore.
+
+| Command               | Fungsi                                                                          |
+| --------------------- | ------------------------------------------------------------------------------- |
+| `npm run seed`        | Seed 4 kriteria AHP + user admin awal.                                          |
+| `npm run seed:dummy`  | Isi data energi dummy 3 bulan terakhir untuk semua area (idempotent, bertren).  |
+| `npm run ahp`         | Jalankan & simpan hasil AHP 3 bulan terakhir. `npm run ahp -- 2026-02` per bulan. |
 
 ---
 
@@ -224,8 +238,10 @@ src/
 ├── pages/           # Halaman per route
 ├── router/          # Definisi route
 ├── services/        # Akses Firestore (auth, user, area, data, ahp, notif)
-└── stores/          # Zustand stores (auth, toast)
+└── stores/          # Zustand stores (auth, toast, notification)
 scripts/
-├── encrypt-env.mjs  # CLI enkripsi config → SECRET
-└── seed.mjs         # Seed kriteria + admin awal
+├── encrypt-env.mjs       # CLI enkripsi config → SECRET
+├── seed.mjs              # Seed kriteria + admin awal
+├── seed-dummy-data.mjs   # Seed data energi dummy 3 bulan (semua area)
+└── run-ahp.mjs           # Hitung & simpan hasil AHP 3 bulan terakhir
 ```

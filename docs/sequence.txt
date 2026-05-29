@@ -74,6 +74,8 @@ SVC --> UI : Data area, energi & hasil AHP
 deactivate SVC
 UI -> UI : Hitung KPI & susun data grafik
 UI --> U : Tampilkan kartu KPI & grafik skor AHP
+U -> UI : Klik bar/titik area pada grafik
+UI --> U : Tampilkan panel detail (skor, ranking, data input) dari data termuat
 deactivate UI
 @enduml
 

@@ -59,7 +59,8 @@ title Activity Diagram - Lihat Dashboard
 start
 :Buka halaman Dashboard;
 :Pilih rentang periode
-(3-20 bulan terakhir);
+(3-20 bulan terakhir,
+mulai bulan sebelumnya);
 |Sistem|
 :Ambil data area, data energi
 & hasil AHP pada periode;
@@ -70,6 +71,9 @@ grafik skor AHP per area;
 |Pengguna|
 :Klik legenda area untuk
 menyorot tren area tertentu;
+:Klik bar/titik area untuk
+melihat detail skor, ranking
+& data input area pada bulan itu;
 stop
 @enduml
 
